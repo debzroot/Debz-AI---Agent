@@ -304,11 +304,13 @@ install_python_deps() {
         fi
     fi
 
-    # Fallback: pip install (butuh internet)
+    # Install dependencies via pip
     info "Install Python dependencies via pip..."
-    "$VENV_PY" -m pip install -q -r "$REQ" || warn "pip install gagal — pastikan koneksi internet"
-    "$VENV_PY" -c "import flask, flask_sock, requests, rich, prompt_toolkit" 2>/dev/null \
-        || die "Dependency Python tidak lengkap. Jalankan: $VENV_PY -m pip install -r $REQ"
+    "$VENV_PY" -m pip install -q -r "$REQ" 2>/dev/null || true
+    "$VENV_PY" -m pip install -q flask-cors requests 2>/dev/null || true
+    
+    "$VENV_PY" -c "import flask, flask_sock, requests, rich, prompt_toolkit, flask_cors" 2>/dev/null \
+        || die "Dependency Python tidak lengkap. Jalankan: $VENV_PY -m pip install flask-cors requests"
     ok "Python dependencies OK"
 }
 
