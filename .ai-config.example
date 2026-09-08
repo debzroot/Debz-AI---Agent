@@ -22,7 +22,7 @@ AI_MODEL=openai/gpt-4o-mini
 ; Kalau kosong, tool server nggak mau start.
 ; -------------------------------------------------------------
 AI_TOOLS_TOKEN=GANTI_TOKEN_ACAK_PANJANG
-AI_TOOLS_PORT=999
+AI_TOOLS_PORT=9090
 
 ; Batas iterasi agent loop
 AI_MAX_ITER=128
