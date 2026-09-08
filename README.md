@@ -8,6 +8,8 @@ AI agent mandiri yang bisa diajak ngobrol sekaligus **jalanin perintah** (shell,
 
 [![Support Developer](https://img.shields.io/badge/☕_Support_Developer-Saweria-FF5E5B?style=for-the-badge&logo=buy-me-a-coffee&logoColor=white)](https://saweria.co/debzroot)
 
+[![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
+
 </div>
 
 ---
@@ -57,14 +59,14 @@ cd debz_ai
 Buka link ini di browser, langsung ke-download:
 
 ```
-https://github.com/debzroot/Debz-AI---Agent/archive/refs/heads/main.zip
+https://github.com/debzroot/Debz-AI-Agent/archive/refs/heads/main.zip
 ```
 
 Lalu:
-1. **Extract** file `main.zip` → jadi folder `Debz-AI---Agent-main`
+1. **Extract** file `main.zip` → jadi folder `Debz-AI-Agent-main`
 2. Rename jadi `debz_ai` (biar rapi):
    ```bash
-   mv Debz-AI---Agent-main debz_ai
+   mv Debz-AI-Agent-main debz_ai
    ```
 3. Masuk folder & jalankan:
    ```bash
@@ -74,7 +76,7 @@ Lalu:
 
 > 💡 **Cara 2 alternatif**: buka halaman repo di GitHub → klik tombol hijau **`<> Code`** → pilih **Download ZIP**.
 
-> 🔑 **Buat yang suka SSH**: `git clone git@github.com:debzroot/Debz-AI---Agent.git debz_ai` (perlu SSH key terdaftar dulu di GitHub).
+> 🔑 **Buat yang suka SSH**: `git clone git@github.com:debzroot/Debz-AI-Agent.git debz_ai` (perlu SSH key terdaftar dulu di GitHub).
 
 ---
 
@@ -100,12 +102,12 @@ Script `debz.sh` otomatis:
   🛠️ Tool server → http://127.0.0.1:9090
 ```
 
+---
+
 ## 📱 Jalan di Termux (Android)
 
-Debz AI bisa dijalanin langsung dari **Termux** di HP Android. Replace beberapa file dalam direktori /debz_ai dengan file fixed yang ada di **PATCH FOR ANDROID** (Wajib)
-karena file bawaan tested di alpine linux, path jelas beda dengan termux. dan karena playwright-core ga support di android maka menggunakan Browser CDN adalah solusi terbaik. 👾
-
-Script mendeteksi Termux dan pakai nama paket yang benar (`pkg`, bukan `apt`).
+Debz AI bisa dijalanin langsung dari **Termux** di HP Android. Script `debz.sh` otomatis
+mendeteksi Termux dan pakai nama paket yang benar (`pkg`, bukan `apt`).
 
 ```bash
 pkg install git -y
@@ -115,24 +117,23 @@ cd debz_ai
 ```
 
 > 📌 **Catatan Termux:**
+> - Kalau muncul error `Permission denied` saat clone, cek dulu SSH key (cara di atas pakai HTTPS jadi aman).
 > - Kalau `./debz.sh` nggak bisa dieksekusi, jalankan `bash debz.sh`.
 > - Di Termux, dependency Python diinstall langsung ke system (tanpa venv) biar lebih ringan & cepat.
-> - Gagal pasang cua_driver? install manual dengan command : curl -fsSL https://cua.ai/driver/install.sh | bash -s -- --channel nightly
-
+> - Browser daemon opsional — kalau Chromium/Playwright gagal terpasang, chat & tools tetap jalan normal.
 
 ## ⚙️ Setup Pertama Kali (WAJIB)
 
 Setelah clone & start, project masih **belum punya API key** (default kosong, aman). Isi dulu biar bisa dipakai:
 
 1. Buka **http://127.0.0.1:8080** di browser
-2. Klik tombol **⚙️ Settings** (menu sidebar)
+2. Klik tombol **⚙️ Settings** (pojok kanan atas)
 3. Di kartu provider **OpenRouter (default)**:
    - **API Key** → isi key kamu (buat di [openrouter.ai/keys](https://openrouter.ai/keys) — gratis)
    - **Model** → pilih model, misal `openai/gpt-4o-mini`, atau klik **📂 Model** buat lihat daftar
    - Klik **Test Koneksi** dulu buat mastiin berhasil
    - Klik **Simpan**
 4. Balik ke halaman chat, langsung bisa dipakai ✅
-5. jika error 400, coba generate X-Session-ID dari menu edit provider.
 
 > 💡 **Bisa pakai provider lain juga** — di Settings, klik **+ Tambah Provider**, isi Base URL + API key + model. Yang penting endpoint-nya OpenAI-compatible (format `/v1`). Misal: OpenAI, Groq, Ollama lokal, atau server AI sendiri.
 
@@ -140,7 +141,7 @@ Setelah clone & start, project masih **belum punya API key** (default kosong, am
 
 ## 🔑 Ganti Password WebUI
 
-Password default WebUI "123456" silahkan ganti sesuai keinginan di **`index.php`**, baris paling atas:
+Password default WebUI ada di file **`index.php`**, baris paling atas:
 
 ```php
 define('AUTH_PASSWORD', 'ganti-ini-password-kamu');
@@ -286,5 +287,38 @@ Kalau ada yang kurang atau mau request fitur, silakan buka issue. Dan kalau proj
 [![Saweria](https://img.shields.io/badge/Traktir_Kopi-Saweria-FF5E5B?style=for-the-badge&logo=buy-me-a-coffee&logoColor=white)](https://saweria.co/debzroot)
 
 **https://saweria.co/debzroot**
+
+</div>
+
+---
+
+## 📜 Lisensi
+
+Project ini dilisensikan di bawah **MIT License** — silakan lihat file [LICENSE](LICENSE) untuk detail lengkap.
+
+> 📄 **MIT License** — bebas pakai, modifikasi, distribusi, bahkan untuk tujuan komersial, dengan syarat menyertakan copyright dan lisensi asli. 🎉
+
+---
+
+## 🙏 Acknowledgement
+
+Project ini berdiri di atas karya luar biasa dari berbagai project open source & komunitas:
+
+- 🤖 **[Hermes Agent](https://github.com/NousResearch/hermes-agent)** — oleh Nous Research. Inspirasi utama arsitektur agent yang "grows with you".
+- 🔀 **[9Router](https://github.com/decolua/9router)** — routing & gateway AI multi-provider yang jadi dasar sistem multi-provider Debz AI.
+- 🐛 **[Eruda](https://github.com/liriliri/eruda)** — console & debugger mobile yang dibundel langsung di WebUI.
+- 🚀 **[OpenCode](https://github.com/anomalyco/opencode)** — inspirasi pola coding agent & DX modern di CLI.
+- 🌐 **[OpenRouter](https://github.com/OpenRouterTeam)** — aggregator model AI multi-provider bawaan (openrouter.ai).
+- 👻 **Everyone** — semua orang yang berkontribusi, ngasih feedback, fork, star, share, dan bantu develop project ini. Kalian keren!
+
+---
+
+<div align="center">
+
+### 🚀 Built by [Debz](https://debz.online)
+
+**Made with 💚, ☕, dan sedikit 🧠**
+
+[![Debz](https://img.shields.io/badge/Built_by-Debz-6C63FF?style=for-the-badge)](https://debz.online)
 
 </div>
