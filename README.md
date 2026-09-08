@@ -47,7 +47,7 @@ Pilih salah satu cara download di bawah ini, lalu jalanin `./debz.sh`.
 ### Cara 1 — Git Clone (HTTPS) ⭐ paling umum
 
 ```bash
-git clone https://github.com/debzroot/Debz-AI---Agent.git debz_ai
+git clone https://github.com/debzroot/Debz-AI-Agent.git debz_ai
 cd debz_ai
 ./debz.sh
 ```
