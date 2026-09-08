@@ -98,7 +98,7 @@ ASCII_BANNER = r"""
 TOOL_ICONS_MAP = {
     "shell": "⚡", "read_file": "📖", "write_file": "✍️", "list_dir": "🔎", "search": "🔎",
     "http_request": "🌐", "download_file": "⬇️", "db_query": "🗄️", "archive": "🗜️",
-    "process_list": "📊", "process_kill": "💀", "note": "🧠", "app_install": "📦",
+    "process_list": "📊", "process_kill": "💀", "note": "🧠", "skill": "📚", "app_install": "📦",
 }
 
 def _get_dynamic_label(name, args):
@@ -113,6 +113,7 @@ def _get_dynamic_label(name, args):
     elif name == "archive": return f"Archive: {args.get('action', '')}"
     elif name == "process_list": return f"PS: {args.get('pattern', 'all')}"
     elif name == "process_kill": return f"Kill: {args.get('pid', args.get('pattern', '?'))}"
+    elif name == "skill": return f"Skill: {args.get('action', '')}"
     elif name == "note": return f"Note: {args.get('action', '')}"
     elif name == "app_install": return f"Pkg: {args.get('action', '')}"
     return name
@@ -690,6 +691,7 @@ class Tools:
     def archive(self, action, archive_path, files=None, target_dir=None): return self._post("/api/archive", {"action": action, "archive_path": archive_path, "files": files or [], "target_dir": target_dir})
     def ps(self, pattern=None): return self._post("/api/ps", {"pattern": pattern or ""})
     def kill(self, pid=None, pattern=None, signal=15): return self._post("/api/kill", {"pid": pid, "pattern": pattern or "", "signal": signal})
+    def skill(self, action, name=None, category=None, content=None, pattern=None): return self._post("/api/skill", {"action": action, "name": name, "category": category, "content": content, "pattern": pattern})
     def note(self, action, key=None, content=None, pattern=None): return self._post("/api/note", {"action": action, "key": key, "content": content, "pattern": pattern})
     def pkg(self, action, package=None): return self._post("/api/pkg", {"action": action, "package": package or ""})
 
@@ -779,6 +781,7 @@ class Agent:
         {"type": "function", "function": {"name": "archive", "description": "Archive", "parameters": {"type": "object", "properties": {"action": {"type": "string", "enum": ["create", "extract"]}, "archive_path": {"type": "string"}, "files": {"type": "array"}, "target_dir": {"type": "string"}}, "required": ["action", "archive_path"]}}},
         {"type": "function", "function": {"name": "process_list", "description": "List procs", "parameters": {"type": "object", "properties": {"pattern": {"type": "string"}}}}},
         {"type": "function", "function": {"name": "process_kill", "description": "Kill proc", "parameters": {"type": "object", "properties": {"pid": {"type": "integer"}, "pattern": {"type": "string"}, "signal": {"type": "integer"}}}}},
+        {"type": "function", "function": {"name": "skill", "description": "Knowledge base skills (list/search/get/create/delete/stats)", "parameters": {"type": "object", "properties": {"action": {"type": "string", "enum": ["list", "search", "get", "create", "delete", "stats"]}, "name": {"type": "string"}, "category": {"type": "string"}, "content": {"type": "string"}, "pattern": {"type": "string"}}, "required": ["action"]}}},
         {"type": "function", "function": {"name": "note", "description": "AI memory", "parameters": {"type": "object", "properties": {"action": {"type": "string", "enum": ["list", "get", "add", "delete", "search"]}, "key": {"type": "string"}, "content": {"type": "string"}, "pattern": {"type": "string"}}, "required": ["action"]}}},
         {"type": "function", "function": {"name": "app_install", "description": "Pkg mgr", "parameters": {"type": "object", "properties": {"action": {"type": "string", "enum": ["search", "install", "remove", "update", "installed"]}, "package": {"type": "string"}}, "required": ["action"]}}}
     ]

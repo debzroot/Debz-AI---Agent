@@ -572,6 +572,142 @@ def api_note():
         return jsonify({"error": str(e)}), 500
 
 
+
+# ============================================================
+# SKILLS — knowledge base agent (folder skills/ di project)
+# ============================================================
+_SKILLS_DIR = Path(__file__).resolve().parent / "skills"
+
+def _skill_all_files():
+    """Scan semua SKILL.md di skills/ (rekursif)."""
+    if not _SKILLS_DIR.is_dir():
+        return []
+    return sorted(_SKILLS_DIR.rglob("SKILL.md"))
+
+def _skill_fm(path: Path) -> dict:
+    """Parse YAML frontmatter sederhana (blok --- ---)."""
+    meta = {}
+    try:
+        raw = path.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        raw = ""
+    if raw.startswith("---"):
+        end = raw.find("\n---", 3)
+        if end != -1:
+            for line in raw[3:end].splitlines():
+                line = line.strip()
+                if not line or line.startswith("#") or ":" not in line:
+                    continue
+                k, v = line.split(":", 1)
+                meta[k.strip()] = v.strip().strip('"').strip("'")
+    return meta
+
+def _skill_entry(path: Path) -> dict:
+    rel = path.relative_to(_SKILLS_DIR)
+    parts = list(rel.parts[:-1])
+    name = path.parent.name
+    category = parts[0] if parts else "uncategorized"
+    fm = _skill_fm(path)
+    return {
+        "name": fm.get("name", name),
+        "category": category,
+        "path": str(rel.parent),
+        "description": fm.get("description", ""),
+        "tags": fm.get("tags", ""),
+        "version": fm.get("version", ""),
+        "bytes": path.stat().st_size if path.exists() else 0,
+    }
+
+def _skill_search(q: str, limit: int = 8):
+    """Cari skill by keyword di name/desc/tags/path. Ranking token sederhana."""
+    q = (q or "").lower()[:300]
+    if not q:
+        return []
+    scored = []
+    for p in _skill_all_files():
+        e = _skill_entry(p)
+        hay = " ".join([e["name"], e["category"], e["description"], e["tags"], e["path"]]).lower()
+        score = 0
+        for tok in q.split():
+            if len(tok) >= 3 and tok in hay:
+                score += 1
+        if q in e["name"].lower():
+            score += 4
+        if q in e["category"].lower():
+            score += 2
+        if score > 0:
+            scored.append((score, e))
+    scored.sort(key=lambda x: (-x[0], x[1]["name"]))
+    return [e for _, e in scored[:limit]]
+
+@app.post("/api/skill")
+def api_skill():
+    deny = _auth()
+    if deny:
+        return deny
+    body = request.get_json(silent=True) or {}
+    action = str(body.get("action", "list")).lower()
+    name = str(body.get("name", "")).strip()
+    category = str(body.get("category", "")).strip() or "custom"
+    content = str(body.get("content", ""))
+    pattern = str(body.get("pattern", "")).strip()
+    try:
+        if action == "search":
+            if not pattern:
+                return jsonify({"error": "pattern wajib buat search"}), 400
+            res = _skill_search(pattern)
+            return jsonify({"results": res, "count": len(res)}), 200
+        if action == "get":
+            if not name:
+                return jsonify({"error": "name wajib"}), 400
+            for p in _skill_all_files():
+                e = _skill_entry(p)
+                if e["name"] == name or str(p.parent.name) == name:
+                    return jsonify({"name": e["name"], "category": e["category"],
+                                    "content": p.read_text(encoding="utf-8", errors="replace"),
+                                    "bytes": e["bytes"]}), 200
+            return jsonify({"error": "skill tidak ada: " + name}), 404
+        if action == "create":
+            if not name:
+                return jsonify({"error": "name wajib"}), 400
+            if not content:
+                return jsonify({"error": "content wajib (isi SKILL.md)"}), 400
+            safe_name = re.sub(r"[^a-z0-9-]+", "-", name.lower()).strip("-")
+            if not safe_name:
+                return jsonify({"error": "name gak valid"}), 400
+            cat = re.sub(r"[^a-z0-9-]+", "-", category.lower()).strip("-") or "custom"
+            target = _SKILLS_DIR / cat / safe_name / "SKILL.md"
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+            return jsonify({"ok": True, "path": str(target.relative_to(_SKILLS_DIR)),
+                            "bytes": len(content)}), 200
+        if action == "delete":
+            if not name:
+                return jsonify({"error": "name wajib"}), 400
+            for p in _skill_all_files():
+                e = _skill_entry(p)
+                if e["name"] == name or str(p.parent.name) == name:
+                    _shutil.rmtree(p.parent, ignore_errors=True)
+                    return jsonify({"ok": True, "deleted": e["name"]}), 200
+            return jsonify({"error": "skill tidak ada: " + name}), 404
+        if action == "stats":
+            allf = _skill_all_files()
+            cats = {}
+            for p in allf:
+                e = _skill_entry(p)
+                cats[e["category"]] = cats.get(e["category"], 0) + 1
+            return jsonify({"total": len(allf), "categories": len(cats),
+                            "by_category": cats}), 200
+        # default: list
+        entries = [_skill_entry(p) for p in _skill_all_files()]
+        cats = {}
+        for e in entries:
+            cats.setdefault(e["category"], []).append(e)
+        return jsonify({"skills": entries, "count": len(entries),
+                        "by_category": cats}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 def _pkg_mgr():
     for m in ("apk", "pkg", "apt-get", "apt"):
         p = _shutil.which(m)

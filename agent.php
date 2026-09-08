@@ -207,6 +207,24 @@ function native_tool_definitions() {
         [
             'type' => 'function',
             'function' => [
+                'name' => 'skill',
+                'description' => 'Kelola knowledge base skills (folder skills/): list, search by keyword, get isi SKILL.md, create skill baru dari prosedur reusable, delete, stats. Pake create buat nyimpen prosedur/learning yang bisa dipake lagi di tugas serupa.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'action' => ['type' => 'string', 'enum' => ['list', 'search', 'get', 'create', 'delete', 'stats']],
+                        'name' => ['type' => 'string', 'description' => 'nama skill (buat get/create/delete)'],
+                        'category' => ['type' => 'string', 'description' => 'kategori folder (buat create, default custom)'],
+                        'content' => ['type' => 'string', 'description' => 'isi SKILL.md lengkap (buat create)'],
+                        'pattern' => ['type' => 'string', 'description' => 'keyword cari (buat search)'],
+                    ],
+                    'required' => ['action']
+                ]
+            ]
+        ],
+        [
+            'type' => 'function',
+            'function' => [
                 'name' => 'app_install',
                 'description' => 'Manajemen package via apk/pkg: search / install / remove / update / installed. Buat nambahin tools ke sistem.',
                 'parameters' => [
@@ -289,6 +307,7 @@ function native_tool_endpoint($name) {
         'process_list' => 'ps',
         'process_kill' => 'kill',
         'note' => 'note',
+        'skill' => 'skill',
         'app_install' => 'pkg',
         'computer_use' => 'cua',
         'browser' => 'browser',
@@ -672,6 +691,22 @@ function termEmit($kind, $text) {
     emit(['type' => 'terminal', 'kind' => $kind, 'line' => $text]);
 }
 
+
+// Inject skill relevan ke system prompt — biar agent "tahu cara" sebelum kerja.
+// Query tool server (skill:search). Kalau tool server mati / tools OFF → skip.
+function native_inject_skills($userText, $toolsOn) {
+    if (!$toolsOn || trim((string)$userText) === '') return '';
+    $args = ['action' => 'search', 'pattern' => $userText];
+    list($ok, $data) = native_call_tool('skill', $args);
+    if (!$ok || empty($data['results'])) return '';
+    $block = "\n\n===== SKILL RELEVAN (acuan kalau sesuai tugas) =====\n";
+    foreach (array_slice($data['results'], 0, 3) as $s) {
+        $block .= "• [{$s['category']}/{$s['name']}] " . (($s['description'] ?? '') !== '' ? $s['description'] : '') . "\n";
+    }
+    $block .= "Kalau butuh detail penuh, panggil tool skill action=get name='...'.\n";
+    return $block;
+}
+
 function native_agent_run($P, $messagesIn, $maxTokens, $userText, $toolsOn = true, $providerChain = [], $PROVIDERS = null, $allowSessionIn = false) {
     $baseUrl = $P['base_url'];
     $apiKey = $P['api_key'] ?? ''; // provider free bisa tanpa key
@@ -692,6 +727,8 @@ function native_agent_run($P, $messagesIn, $maxTokens, $userText, $toolsOn = tru
         ? "Lu adalah Debz AI — agent yang jalan di c0n73xt WebUX. Bahasa gaul Indonesia (gue/lu). "
         . $toolsNote
         . "Format jawaban: markdown rapih, code block pakai label bahasa. Jawab santai tapi akurat."
+        . ($toolsOn ? " Setelah selesai tugas yang menghasilkan prosedur reusable (cara fix, workflow, template, config), SIMPAN sebagai skill baru via tool skill action=create (kategori sesuai domain). Jangan simpan raw log/chat — cuma prosedur yang reusable." : "")
+        . native_inject_skills($userText, $toolsOn)
         : "Lu adalah Debz AI di c0n73xt WebUX. Bahasa gaul Indonesia (gue/lu).";
 
     $chatMessages = [['role' => 'system', 'content' => $sysPrompt]];
@@ -1015,6 +1052,7 @@ function native_tool_arg_summary($name, $args) {
         case 'archive': return ($args['action'] ?? '') . ' ' . ((string)($args['archive_path'] ?? ''));
         case 'process_list': return isset($args['pattern']) ? 'filter: ' . (string)$args['pattern'] : 'semua';
         case 'process_kill': return isset($args['pid']) ? ('pid ' . $args['pid']) : ('pattern ' . (string)($args['pattern'] ?? ''));
+        case 'skill': return ($args['action'] ?? '') . (isset($args['name']) ? ' ' . (string)$args['name'] : (isset($args['pattern']) ? ' ' . native_trunc((string)$args['pattern'], 40) : ''));
         case 'note': return ($args['action'] ?? '') . (isset($args['key']) ? ' ' . (string)$args['key'] : '');
         case 'app_install': return ($args['action'] ?? '') . (isset($args['package']) ? ' ' . (string)$args['package'] : '');
         case 'computer_use': return ($args['action'] ?? '') . (isset($args['x']) && isset($args['y']) ? ' @'.$args['x'].','.$args['y'] : (isset($args['text']) ? ' '.native_trunc((string)$args['text'], 30) : (isset($args['url']) ? ' '.native_trunc((string)$args['url'], 40) : (isset($args['key']) ? ' '.(string)$args['key'] : ''))));
@@ -1030,6 +1068,10 @@ function native_tool_result_summary($name, $out) {
     if (isset($out['exit_code'])) return 'exit ' . $out['exit_code'];
     if (isset($out['total_count'])) return $out['total_count'] . ' entri';
     if (isset($out['bytes_written'])) return $out['bytes_written'] . ' bytes';
+    if (isset($out['path']) && isset($out['ok'])) return 'saved ' . $out['path'];
+    if (isset($out['deleted'])) return 'deleted ' . $out['deleted'];
+    if (isset($out['skills'])) return count($out['skills']) . ' skill';
+    if (isset($out['results']) && isset($out['count']) && isset($out['total'])) return $out['count'] . ' skill';
     if (isset($out['bytes'])) return $out['bytes'] . ' bytes';
     if (isset($out['truncated'])) return ($out['truncated'] ? '≥' : '') . count($out['results'] ?? []) . ' hasil';
     if (isset($out['http_code'])) return 'HTTP ' . $out['http_code'];

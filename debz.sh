@@ -524,6 +524,30 @@ status() {
     printf '\n'
 }
 
+
+# ---------------------------------------------------------------------------
+# 7b) SKILL CURATE — ringkasan knowledge base (skills/)
+# ---------------------------------------------------------------------------
+skill_curate() {
+    SKILLS_DIR="$SCRIPT_DIR/skills"
+    if [ ! -d "$SKILLS_DIR" ]; then
+        err "Folder skills/ gak ada"
+        return 1
+    fi
+    TOTAL=$(find "$SKILLS_DIR" -name SKILL.md 2>/dev/null | wc -l)
+    printf '\n  \033[36m═══ Skill Knowledge Base ═══\033[0m\n\n'
+    printf '  \033[32m[✓]\033[0m Total skill : %s\n' "$TOTAL"
+    printf '\n'
+    for d in "$SKILLS_DIR"/*/; do
+        [ -d "$d" ] || continue
+        cat=$(basename "$d")
+        n=$(find "$d" -name SKILL.md 2>/dev/null | wc -l)
+        printf '  \033[36m%s\033[0m  → %s skill\n' "$cat" "$n"
+    done
+    printf '\n  Tips: agent nambah skill otomatis (tool skill create) saat nemu prosedur reusable.\n'
+    printf '  Rapikan manual: edit folder skills/ atau pakai tool skill delete.\n\n'
+}
+
 # ---------------------------------------------------------------------------
 # SUCCESS BANNER
 # ---------------------------------------------------------------------------
@@ -575,6 +599,9 @@ case "${1:-start}" in
         ;;
     status)
         status
+        ;;
+    curate)
+        skill_curate
         ;;
     term)
         shift
