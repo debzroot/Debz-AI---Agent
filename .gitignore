@@ -16,8 +16,6 @@ debug.log
 
 # ===== Data runtime =====
 notes.db
-screenshots/
-*.png
 last_response.txt
 export_*.md
 session_*.json

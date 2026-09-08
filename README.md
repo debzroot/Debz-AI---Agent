@@ -2,6 +2,29 @@
 
 AI agent mandiri yang bisa diajak ngobrol sekaligus **jalanin perintah** (shell, file, browser) lewat satu terminal. Lengkap dengan **WebUI**, **CLI**, dan **server tools** — semua jalan di mesin kamu sendiri.
 
+> 🌟 **100% Open Source** — bebas dipakai, dimodifikasi, dan di-recoding ulang sesuai kebutuhan kamu. Nggak ada lisensi tertutup, nggak ada biaya. Kalau project ini bermanfaat, boleh banget support developer lewat tombol di bawah. 🙏
+
+<div align="center">
+
+[![Support Developer](https://img.shields.io/badge/☕_Support_Developer-Saweria-FF5E5B?style=for-the-badge&logo=buy-me-a-coffee&logoColor=white)](https://saweria.co/debzroot)
+
+</div>
+
+---
+
+## 📸 Screenshot
+
+Tampilan WebUI (mode mobile/HP — di desktop juga bisa, tinggal buka di browser):
+
+<div align="center">
+
+| | | |
+|:---:|:---:|:---:|
+| <img src="screenshots/SS1.png" width="200"> | <img src="screenshots/SS2.png" width="200"> | <img src="screenshots/SS3.png" width="200"> |
+| <img src="screenshots/SS4.png" width="200"> | <img src="screenshots/SS5.png" width="200"> | <img src="screenshots/SS6.png" width="200"> |
+
+</div>
+
 ---
 
 ## ✨ Fitur
@@ -12,6 +35,8 @@ AI agent mandiri yang bisa diajak ngobrol sekaligus **jalanin perintah** (shell,
 - 💻 **CLI terminal** (`debz-term`) — buat yang lebih nyaman di terminal
 - 🔄 **Multi-provider** — bisa set beberapa provider + routing (fixed / round-robin / failover)
 - 📦 **Auto-install** — sekali jalanin `./debz.sh`, semua dependency kepasang otomatis
+- 🐛 **Eruda overlay** — console & debugger mobile langsung di WebUI, tinggal tap tombol
+- 🔒 **Password protected** — WebUI aman, password bisa diganti sendiri di `index.php`
 
 ---
 
@@ -54,6 +79,34 @@ Setelah clone & start, project masih **belum punya API key** (default kosong, am
 4. Balik ke halaman chat, langsung bisa dipakai ✅
 
 > 💡 **Bisa pakai provider lain juga** — di Settings, klik **+ Tambah Provider**, isi Base URL + API key + model. Yang penting endpoint-nya OpenAI-compatible (format `/v1`). Misal: OpenAI, Groq, Ollama lokal, atau server AI sendiri.
+
+---
+
+## 🔑 Ganti Password WebUI
+
+Password default WebUI ada di file **`index.php`**, baris paling atas:
+
+```php
+define('AUTH_PASSWORD', 'ganti-ini-password-kamu');
+```
+
+Cara ganti:
+1. Buka `index.php` pakai editor teks
+2. Cari baris `define('AUTH_PASSWORD', '...')`
+3. Ganti isinya dengan password baru kamu
+4. Simpan, lalu restart: `./debz.sh stop && ./debz.sh start`
+
+> ⚠️ **Jangan commit perubahan ini** kalau password-nya rahasia — file `index.php` itu ikut ter-versioning. Kalau mau, bisa diganti setelah clone.
+
+---
+
+## 🐛 Eruda Overlay (Debug Mobile)
+
+WebUI udah dibekali **Eruda** — console, network, dan DOM inspector ala DevTools browser, tapi jalan di dalam halaman (cocok buat akses dari HP).
+
+- Muncul sebagai tombol **floating** di sisi kanan bawah layar
+- Tap buat buka panel: Console, Elements, Network, Resources, Sources, dan lainnya
+- Berguna banget buat debugging JS WebUI langsung dari HP
 
 ---
 
@@ -159,6 +212,27 @@ Ada 2 file config:
 
 **Browser daemon off?**
 → Itu normal kalau Node/Playwright nggak ada — fitur browser aja yang nonaktif, chat & tools tetap jalan.
+
+---
+
+## 🧠 Open Source & Bebas Recode
+
+Project ini **open source penuh** — kamu bebas:
+- ✏️ **Recode / modifikasi** sesuai kebutuhan
+- 🔀 **Fork & deploy** di server sendiri
+- 📚 **Belajar** dari struktur kodenya
+
+Kalau ada yang kurang atau mau request fitur, silakan buka issue. Dan kalau project ini kepake & membantu, support developer biar makin semangat ngembangin:
+
+<div align="center">
+
+### ☕ Support Developer
+
+[![Saweria](https://img.shields.io/badge/Traktir_Kopi-Saweria-FF5E5B?style=for-the-badge&logo=buy-me-a-coffee&logoColor=white)](https://saweria.co/debzroot)
+
+**https://saweria.co/debzroot**
+
+</div>
 
 ---
 
