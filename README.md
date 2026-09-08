@@ -31,7 +31,7 @@ Tampilan WebUI (mode mobile/HP — di desktop juga bisa, tinggal buka di browser
 
 - 💬 **Chat AI** — pakai provider OpenAI-compatible apa aja (OpenRouter, OpenAI, Groq, Ollama lokal, dll)
 - 🛠️ **Agent + Tools** — bisa eksekusi shell, baca/tulis file, buka browser, otomatis
-- 🌐 **WebUI** di `http://127.0.0.1:666` — buat chat & atur konfigurasi
+- 🌐 **WebUI** di `http://127.0.0.1:8080` — buat chat & atur konfigurasi
 - 💻 **CLI terminal** (`debz-term`) — buat yang lebih nyaman di terminal
 - 🔄 **Multi-provider** — bisa set beberapa provider + routing (fixed / round-robin / failover)
 - 📦 **Auto-install** — sekali jalanin `./debz.sh`, semua dependency kepasang otomatis
@@ -94,10 +94,10 @@ Script `debz.sh` otomatis:
 **Output kalau sukses:**
 
 ```
-  🌐 WebUI      → http://127.0.0.1:666
+  🌐 WebUI      → http://127.0.0.1:8080
   💻 CLI        → ketik debz-term
   ⚙️ Konfigurasi → API key & model diatur lewat WebUI (tombol ⚙️ Settings)
-  🛠️ Tool server → http://127.0.0.1:999
+  🛠️ Tool server → http://127.0.0.1:9090
 ```
 
 ---
@@ -128,7 +128,7 @@ cd debz_ai
 
 Setelah clone & start, project masih **belum punya API key** (default kosong, aman). Isi dulu biar bisa dipakai:
 
-1. Buka **http://127.0.0.1:666** di browser
+1. Buka **http://127.0.0.1:8080** di browser
 2. Klik tombol **⚙️ Settings** (pojok kanan atas)
 3. Di kartu provider **OpenRouter (default)**:
    - **API Key** → isi key kamu (buat di [openrouter.ai/keys](https://openrouter.ai/keys) — gratis)
@@ -212,8 +212,8 @@ debz-term --exec "buatkan script python untuk backup folder" --json
 
 | Komponen | File | Port |
 |---|---|---|
-| WebUI | `index.php` (PHP built-in server) | **666** |
-| Tool server | `backend.py` (Flask) | **999** |
+| WebUI | `index.php` (PHP built-in server) | **8080** |
+| Tool server | `backend.py` (Flask) | **9090** |
 | CLI terminal | `debz-term.py` (Rich + prompt_toolkit) | — |
 | Browser daemon | `pw_daemon.mjs` (Playwright + Chromium) | **9222** |
 
