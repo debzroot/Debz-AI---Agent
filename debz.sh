@@ -189,9 +189,9 @@ install_system_deps() {
     case "$PM" in
         termux)
             # Termux: nama paket beda dari Debian/Ubuntu
-            NEED="php python nodejs-lts chromium curl"
+            NEED="php php-fpm nginx python nodejs-lts chromium curl"
             MISSING=""
-            for c in php python3 node chromium curl; do
+            for c in php php-fpm nginx python3 node chromium curl; do
                 command -v "$c" >/dev/null 2>&1 || MISSING="$MISSING $c"
             done
             if [ -n "$MISSING" ]; then
@@ -381,6 +381,82 @@ setup_cli_cmd() {
     fi
 }
 
+
+# ---------------------------------------------------------------------------
+# 4b) ENSURE WEBUI RUNTIME (nginx + php-fpm, 8 workers)
+#     php -S (built-in) single-threaded -> gampang macet kalau 1 request nge-block.
+#     Solusi worth-it: nginx (frontend, fast) + php-fpm (pool 8 child workers).
+#     Config di-generate otomatis ke $SCRIPT_DIR/config/ (self-contained).
+# ---------------------------------------------------------------------------
+ensure_webui_fpm() {
+    CONF_DIR="$SCRIPT_DIR/config"
+    mkdir -p "$CONF_DIR"
+
+    # --- php-fpm pool config ---
+    FPM_CONF="$CONF_DIR/webui-fpm.conf"
+    if [ ! -f "$FPM_CONF" ]; then
+        cat > "$FPM_CONF" <<EOF
+[global]
+error_log = $LOG_DIR/webui-fpm.log
+pid = $LOG_DIR/webui-fpm.pid
+daemonize = no
+
+[www]
+listen = $LOG_DIR/webui-fpm.sock
+pm = dynamic
+pm.max_children = 8
+pm.start_servers = 2
+pm.min_spare_servers = 1
+pm.max_spare_servers = 4
+EOF
+        info "Config php-fpm dibuat -> $FPM_CONF (8 workers)"
+    fi
+
+    # --- nginx config ---
+    NGX_CONF="$CONF_DIR/webui-nginx.conf"
+    if [ ! -f "$NGX_CONF" ]; then
+        cat > "$NGX_CONF" <<EOF
+worker_processes 1;
+error_log  $LOG_DIR/nginx-error.log;
+pid        $LOG_DIR/nginx.pid;
+
+events {
+    worker_connections 512;
+}
+
+http {
+    access_log         $LOG_DIR/nginx-access.log;
+    sendfile           on;
+    client_max_body_size 50m;
+
+    server {
+        listen       $WEBUI_PORT;
+        server_name  _;
+
+        root   $SCRIPT_DIR;
+        index  index.php;
+
+        location / {
+            try_files \$uri \$uri/ /index.php?\$query_string;
+        }
+
+        location ~ \.php$ {
+            fastcgi_pass   unix:$LOG_DIR/webui-fpm.sock;
+            fastcgi_index  index.php;
+            include        $PREFIX/etc/nginx/fastcgi_params;
+            fastcgi_param  SCRIPT_FILENAME  \$document_root\$fastcgi_script_name;
+        }
+
+        location ~ /\.(?!well-known).* {
+            deny all;
+        }
+    }
+}
+EOF
+        info "Config nginx dibuat -> $NGX_CONF (frontend ke php-fpm)"
+    fi
+}
+
 # ---------------------------------------------------------------------------
 # 5) START SERVICES
 # ---------------------------------------------------------------------------
@@ -396,17 +472,24 @@ start_services() {
         else warn "Tool server belum merespon — cek $LOG_DIR/backend.log"; fi
     fi
 
-    # --- WebUI (PHP built-in server) ---
-    if is_running "php -S .*:$WEBUI_PORT"; then
+    # --- WebUI (nginx + php-fpm, 8 workers) ---
+    if is_running "nginx.*$SCRIPT_DIR"; then
         ok "WebUI sudah jalan (port $WEBUI_PORT)"
     else
-        info "Start WebUI (php -S) di port $WEBUI_PORT..."
-        setsid sh -c "nohup php -S $HOST:$WEBUI_PORT -t '$SCRIPT_DIR' >> '$LOG_DIR/webui.log' 2>&1 &" < /dev/null
-        sleep 1
+        info "Start WebUI (nginx + php-fpm 8 workers) di port $WEBUI_PORT..."
+        ensure_webui_fpm
+        # 1) php-fpm dulu (biar socket siap sebelum nginx)
+        if ! is_running "php-fpm.*$SCRIPT_DIR"; then
+            setsid sh -c "nohup php-fpm -y '$SCRIPT_DIR/config/webui-fpm.conf' >> '$LOG_DIR/webui-fpm.log' 2>&1 &" < /dev/null
+        fi
+        sleep 2
+        # 2) nginx frontend
+        setsid sh -c "nohup nginx -c '$SCRIPT_DIR/config/webui-nginx.conf' -p '$SCRIPT_DIR/' >> '$LOG_DIR/webui.log' 2>&1 &" < /dev/null
+        sleep 2
         if [ "$(webui_up)" = "200" ] || [ "$(webui_up)" = "302" ]; then
             ok "WebUI aktif → http://127.0.0.1:$WEBUI_PORT"
         else
-            warn "WebUI belum merespon — cek $LOG_DIR/webui.log"
+            warn "WebUI belum merespon — cek $LOG_DIR/webui.log & $LOG_DIR/nginx-error.log"
         fi
     fi
 
@@ -431,7 +514,8 @@ start_services() {
 stop_services() {
     info "Menghentikan semua service..."
     pkill -f "backend.py" 2>/dev/null && ok "Tool server di-stop" || warn "Tool server tidak berjalan"
-    pkill -f "php -S .*:$WEBUI_PORT" 2>/dev/null && ok "WebUI di-stop" || warn "WebUI tidak berjalan"
+    pkill -f "nginx.*$SCRIPT_DIR" 2>/dev/null && ok "WebUI (nginx) di-stop" || warn "WebUI (nginx) tidak berjalan"
+    pkill -f "php-fpm.*$SCRIPT_DIR" 2>/dev/null && ok "WebUI (php-fpm) di-stop" || warn "WebUI (php-fpm) tidak berjalan"
     pkill -f "pw_daemon.mjs" 2>/dev/null && ok "Browser daemon di-stop" || warn "Browser daemon tidak berjalan"
     ok "Semua service berhenti"
 }

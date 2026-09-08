@@ -148,11 +148,11 @@ def screenshot(prefix="shot"):
 
 # ================== TANGAN (AKSI) ==================
 def click(x, y, button=1):
-    return _xdo("mousemove", "--sync", str(int(x)), str(int(y)), "click", str(int(button)))
+    return _xdo("mousemove", str(int(x)), str(int(y)), "click", str(int(button)))
 
 
 def dblclick(x, y):
-    return _xdo("mousemove", "--sync", str(int(x)), str(int(y)), "click", "--repeat", "2", "1")
+    return _xdo("mousemove", str(int(x)), str(int(y)), "click", "--repeat", "2", "1")
 
 
 def rightclick(x, y):
@@ -164,13 +164,24 @@ def move(x, y):
 
 
 def drag(x1, y1, x2, y2, button=1, duration=0.3):
-    dur = max(float(duration), 0.05)
-    return _xdo(
-        "mousemove", "--sync", str(int(x1)), str(int(y1)),
-        "mousedown", str(int(button)),
-        "mousemove", "--sync", "--duration", str(dur), str(int(x2)), str(int(y2)),
-        "mouseup", str(int(button)),
-    )
+    """Drag via mousemove bertahap (tanpa --sync/--duration yang di Termux bermasalah)."""
+    steps = max(2, min(int(float(duration) * 30), 30))
+    r = _xdo("mousemove", str(int(x1)), str(int(y1)))
+    if r.get("rc") != 0:
+        return r
+    r = _xdo("mousedown", str(int(button)))
+    if r.get("rc") != 0:
+        return r
+    for i in range(1, steps + 1):
+        x = int(x1 + (x2 - x1) * i / steps)
+        y = int(y1 + (y2 - y1) * i / steps)
+        r = _xdo("mousemove", str(x), str(y))
+        if r.get("rc") != 0:
+            break
+    r2 = _xdo("mouseup", str(int(button)))
+    if r.get("rc") != 0:
+        return r
+    return r2
 
 
 def type_text(text):
@@ -184,11 +195,13 @@ def type_text(text):
         if i > 0:
             _xdo("key", "Return")
         if seg:
-            f = Path("/tmp/cua_type.txt")
-            f.write_text(seg, encoding="utf-8")
-            last = _xdo("type", "--clearmodifiers", "--delay", "10", "--file", str(f))
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", suffix=".txt", delete=False) as _f:
+                _f.write(seg)
+                _tmp = _f.name
+            last = _xdo("type", "--clearmodifiers", "--delay", "10", "--file", _tmp)
             try:
-                f.unlink()
+                os.unlink(_tmp)
             except Exception:
                 pass
     return last or {"rc": 0, "out": "", "err": ""}
@@ -206,16 +219,22 @@ def key(keys):
 def scroll(dx=0, dy=1, times=1):
     """Scroll. dy>0 = turun (wheel down), dy<0 = naik. dx untuk horizontal."""
     n = max(1, min(int(times), 20))
-    clicks = []
+    out = ""
     if dy:
         btn = "5" if dy > 0 else "4"
-        clicks += [btn] * n
+        r = _xdo("click", "--repeat", str(n), "--delay", "120", btn)
+        if r.get("rc") != 0:
+            return {"rc": -1, "out": "", "err": f"scroll dy gagal: {r.get('err')}"}
+        out += f"dy{btn}x{n} "
     if dx:
         btn = "7" if dx > 0 else "6"
-        clicks += [btn] * n
-    if not clicks:
+        r = _xdo("click", "--repeat", str(n), "--delay", "120", btn)
+        if r.get("rc") != 0:
+            return {"rc": -1, "out": "", "err": f"scroll dx gagal: {r.get('err')}"}
+        out += f"dx{btn}x{n} "
+    if not out:
         return {"rc": 0, "out": "", "err": "no scroll"}
-    return _xdo("click", *clicks)
+    return {"rc": 0, "out": out.strip(), "err": ""}
 
 
 def status():
@@ -251,8 +270,8 @@ def open_url(url):
     """Buka URL di browser dalam display virtual (kalau ada browser)."""
     start_xvfb()
     for br in ("chromium-browser", "chromium", "google-chrome", "firefox", "epiphany"):
-        p = Path("/usr/bin") / br
-        if p.exists():
+        p = shutil.which(br)
+        if p:
             subprocess.Popen([str(p), "--no-sandbox", "--new-window", str(url)],
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=ENV)
             time.sleep(1.5)
