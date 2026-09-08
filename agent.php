@@ -311,7 +311,7 @@ function native_tools_token() {
 
 // Panggil tool server. Return [ok(bool), data(array)]
 function native_call_tool($endpoint, $args, &$approvalInfo = null) {
-    $base = 'http://127.0.0.1:999/api/' . $endpoint;
+    $base = 'http://127.0.0.1:9090/api/' . $endpoint;
     $token = native_tools_token();
     $payload = array_merge(['token' => $token], $args);
 
