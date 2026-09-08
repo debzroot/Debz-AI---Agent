@@ -14,7 +14,7 @@ if (isset($_GET['logout'])) {
     exit;
 }
 
-define('AUTH_PASSWORD', 'w@rl0ck!!!');
+define('AUTH_PASSWORD', '123456');
 
 $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 $lock_file = sys_get_temp_dir() . '/lock_' . md5($ip) . '.json';
