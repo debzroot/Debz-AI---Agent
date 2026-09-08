@@ -233,7 +233,3 @@ Kalau ada yang kurang atau mau request fitur, silakan buka issue. Dan kalau proj
 **https://saweria.co/debzroot**
 
 </div>
-
----
-
-Dibuat dengan ❤️ oleh **Debz** — platform agent MANDIRI.
