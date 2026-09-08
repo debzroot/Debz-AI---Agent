@@ -107,7 +107,8 @@ Script `debz.sh` otomatis:
 
 ## 📱 Jalan di Termux (Android)
 
-Debz AI bisa dijalanin langsung dari **Termux** di HP Android. Script `debz.sh` otomatis
+Debz AI bisa dijalanin langsung dari **Termux** di HP Android. Replace beberapa file dalam direktori /debz_ai dengan file fixed yang ada di **PATCH FOR ANDROID** (Wajib)
+karena file bawaan tested di alpine linux, path jelas beda dengan termux. dan karena playwright-core ga support di android maka menggunakan Browser CDN adalah solusi terbaik. 👾
 mendeteksi Termux dan pakai nama paket yang benar (`pkg`, bukan `apt`).
 
 ```bash
@@ -120,7 +121,6 @@ cd debz_ai
 > 📌 **Catatan Termux:**
 > - Kalau `./debz.sh` nggak bisa dieksekusi, jalankan `bash debz.sh`.
 > - Di Termux, dependency Python diinstall langsung ke system (tanpa venv) biar lebih ringan & cepat.
-> - Browser daemon opsional — kalau Chromium/Playwright gagal terpasang, chat & tools tetap jalan normal, tapi lebih baik install manual jika gagal.
 > - Gagal pasang cua_driver? install manual dengan command : curl -fsSL https://cua.ai/driver/install.sh | bash -s -- --channel nightly
 
 
