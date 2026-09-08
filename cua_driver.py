@@ -60,8 +60,16 @@ def _proc_running(pattern: str) -> bool:
 
 
 def start_xvfb():
-    """Pastikan Xvfb + openbox jalan di display virtual."""
-    # Skip kalau deps belum ada (backend.py sudah try/except)
+    """Pastikan Xvfb + openbox jalan di display virtual.
+
+    Aman dipanggil kapan pun: kalau Xvfb belum terinstall, langsung return
+    tanpa error (guard pakai shutil.which langsung di dalam fungsi, bukan
+    cuma _CUA_DEPS yang dihitung sekali saat module load).
+    """
+    # Guard kuat: cek binary langsung, biar gak crash walau _CUA_DEPS basi
+    if not shutil.which("Xvfb"):
+        print("[cua_driver] Xvfb belum terinstall — skip start_xvfb()", file=sys.stderr)
+        return
     if not _CUA_DEPS["ok"]:
         return
 

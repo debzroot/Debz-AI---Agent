@@ -59,14 +59,21 @@ webui_up()   { curl -s -m 2 -o /dev/null -w '%{http_code}' "http://127.0.0.1:$WE
 tools_up()   { curl -s -m 2 "http://127.0.0.1:$TOOLS_PORT/api/health" >/dev/null 2>&1; }
 
 # ---------------------------------------------------------------------------
-# 0) AUTO-PORT FIX untuk Termux (port < 124 tidak bisa bind)
+# 0) AUTO-PORT FIX untuk Termux (port < 1024 tidak bisa bind non-root,
+#    dan beberapa Termux menolak port tertentu seperti 666)
 # ---------------------------------------------------------------------------
+TERMUX_SAFE_PORT="${TERMUX_SAFE_PORT:-8080}"
+
 auto_fix_port() {
     PM=$(detect_pm)
-    if [ "$PM" = "termux" ] && [ "$WEBUI_PORT" -lt 124 ] 2>/dev/null; then
-        OLD_PORT="$WEBUI_PORT"
-        WEBUI_PORT=666
-        warn "Termux: port $OLD_PORT < 124 gak bisa bind — WebUI naik ke port $WEBUI_PORT"
+    if [ "$PM" = "termux" ]; then
+        # Termux non-root: port < 1024 gak bisa bind.
+        # Bonus: beberapa Termux juga tolak port 666 (spesifik build) → naikkan ke port aman.
+        if [ "$WEBUI_PORT" -lt 1024 ] 2>/dev/null; then
+            OLD_PORT="$WEBUI_PORT"
+            WEBUI_PORT="$TERMUX_SAFE_PORT"
+            warn "Termux: port $OLD_PORT < 1024 gak bisa bind non-root — WebUI naik ke port $WEBUI_PORT"
+        fi
     fi
 }
 

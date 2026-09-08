@@ -20,3 +20,5 @@ last_response.txt
 export_*.md
 session_*.json
 .approval_always
+# ===== Backup files (jangan commit) =====
+*.bak
