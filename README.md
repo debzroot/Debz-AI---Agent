@@ -104,7 +104,8 @@ Script `debz.sh` otomatis:
 
 Debz AI bisa dijalanin langsung dari **Termux** di HP Android. Replace beberapa file dalam direktori /debz_ai dengan file fixed yang ada di **PATCH FOR ANDROID** (Wajib)
 karena file bawaan tested di alpine linux, path jelas beda dengan termux. dan karena playwright-core ga support di android maka menggunakan Browser CDN adalah solusi terbaik. 👾
-mendeteksi Termux dan pakai nama paket yang benar (`pkg`, bukan `apt`).
+
+Script mendeteksi Termux dan pakai nama paket yang benar (`pkg`, bukan `apt`).
 
 ```bash
 pkg install git -y
