@@ -1,9 +1,4 @@
 #!/usr/bin/env python3
-"""
-c0n73xt Tool Server — "tangan CLI" buat agent UX (Flask Version)
-================================================================
-Flask + Flask-Sock. Bind 0.0.0.0:9090 (configurable via TOOLS_PORT env).
-"""
 
 import os
 import json
@@ -11,20 +6,24 @@ import re
 import secrets
 import sys
 import subprocess
+import requests
+import uuid
+import shutil as _shutil
+import sqlite3 as _sqlite3
 from pathlib import Path
 from typing import Optional
 
+from flask_cors import CORS
 from flask import Flask, request, jsonify
 from flask_sock import Sock
 
 app = Flask("c0n73xt-tool-server")
+CORS(app)
 sock = Sock(app)
 
 CONFIG_FILE = Path(__file__).resolve().parent / ".ai-config.ini"
 
-
 def load_token() -> str:
-    """Baca token dari .ai-config.ini (AI_TOOLS_TOKEN=...)."""
     try:
         for line in CONFIG_FILE.read_text().splitlines():
             line = line.strip()
@@ -34,19 +33,15 @@ def load_token() -> str:
         pass
     return ""
 
-
 TOKEN = os.environ.get("TOOLS_TOKEN", "") or load_token()
 
 if not TOKEN:
     print("[tool-server] FATAL: AI_TOOLS_TOKEN kosong di .ai-config.ini", file=sys.stderr)
     sys.exit(1)
 
-
 def check_token(supplied: str) -> bool:
     return bool(supplied) and secrets.compare_digest(supplied, TOKEN)
 
-
-# Pola perintah bahaya -> wajib approval eksplisit
 DANGER_PATTERNS = [
     r"\brm\s+(-[a-z]*r[a-z]*f?|--recursive)\b",
     r"\brm\s+[^|;&]*\s/\S*",
@@ -62,7 +57,6 @@ DANGER_PATTERNS = [
 ]
 DANGER_RE = [re.compile(p, re.IGNORECASE) for p in DANGER_PATTERNS]
 
-
 def is_dangerous(command: str) -> Optional[str]:
     for i, rx in enumerate(DANGER_RE):
         m = rx.search(command)
@@ -71,12 +65,9 @@ def is_dangerous(command: str) -> Optional[str]:
     return None
 
 
-# ================= HTTP TOOL API =================
-
 @app.get("/api/health")
 def health():
     return jsonify({"status": "healthy", "service": "c0n73xt-tool-server", "version": "2.0-flask"})
-
 
 def _auth() -> Optional[tuple]:
     body = {}
@@ -259,11 +250,6 @@ def api_fs_search():
         return jsonify({"path": path, "pattern": pattern, "truncated": False, "results": results})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-
-# ================= NEW TOOLS — Debz AI expansion =================
-import shutil as _shutil
-import sqlite3 as _sqlite3
 
 
 @app.post("/api/http")
@@ -530,7 +516,6 @@ def api_kill():
 
 _NOTES_DB = str(Path(__file__).resolve().parent / "notes.db")
 
-
 def _notes_conn():
     conn = _sqlite3.connect(_NOTES_DB, timeout=5)
     conn.execute("CREATE TABLE IF NOT EXISTS notes (id INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT UNIQUE, content TEXT, updated_at TEXT DEFAULT (datetime('now')))")
@@ -635,12 +620,9 @@ def api_pkg():
                     "stdout": out[:8192], "stderr": err[:4096]}), 200
 
 
-# ================= CUA (Computer Use Agent) driver =================
-# "Tangan & mata" AI di layar virtual — lihat cua_driver.py
-# OPSIONAL: kalau cua_driver gak ada / deps belum lengkap, backend tetap jalan
 _CUA_AVAILABLE = False
 _cua = None
-_cua_error_msg = ""  # simpan pesan error biar bisa diakses endpoint
+_cua_error_msg = "" 
 
 try:
     import cua_driver as _cua
@@ -659,9 +641,7 @@ def api_cua():
     if not _CUA_AVAILABLE:
         return jsonify({
             "ok": False,
-            "error": f"CUA belum aktif — {_cua_error_msg}. "
-                     "Pastikan Xvfb, openbox, xdotool terinstall. "
-                     "Jalankan: pkg install x11-repo && pkg install xvfb openbox xdotool"
+            "error": f"CUA belum aktif — {_cua_error_msg}. Pastikan Xvfb, openbox, xdotool terinstall."
         }), 200
     body = request.get_json(silent=True) or {}
     action = str(body.get("action", "")).strip()
@@ -689,12 +669,7 @@ def api_screenshot():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
-# ================= BROWSER automation (Playwright + Chromium headless) =================
-# State persistent via daemon port 9222; fallback launch lokal di pw_browser.mjs.
-# Commands: goto|content|text|title|screenshot|click|type|press|wait|eval|close
-
 _BROWSER_SHOT_DIR = str(Path(__file__).resolve().parent / "screenshots")
-
 
 @app.post("/api/browser")
 def api_browser():
@@ -755,7 +730,6 @@ def api_browser():
     except Exception:
         data = {"ok": False, "error": (stdout or stderr)[:2000]}
 
-    # Screenshot: tambah base64 (di-resize ke max 1024) biar bisa dibaca model vision.
     if command == "screenshot" and data.get("ok"):
         path = data.get("path") or (args[1] if len(args) > 1 else "")
         if path and os.path.isfile(path):
@@ -777,8 +751,6 @@ def api_browser():
     data.setdefault("command", command)
     return jsonify(data), 200
 
-
-# ================= WebSocket terminal =================
 
 @sock.route("/ws/terminal/<terminal_id>")
 def terminal_websocket(ws, terminal_id):
@@ -851,8 +823,44 @@ def terminal_websocket(ws, terminal_id):
         pass
 
 
+@app.route("/", methods=["GET", "POST", "OPTIONS"])
+def root_handler():
+    if request.method == "OPTIONS":
+        return jsonify({"ok": True}), 200
+
+    action = request.args.get("action")
+    if action == "providers":
+        body = request.get_json(silent=True) or {}
+        
+        if body.get("op") == "gensession":
+            base_url = body.get("base_url")
+            api_key = body.get("api_key")
+            ua = body.get("ua")
+            
+            if not base_url:
+                return jsonify({"success": False, "error": "Base URL kosong"}), 400
+                
+            try:
+                headers = {"User-Agent": ua} if ua else {}
+                if api_key:
+                    headers["Authorization"] = f"Bearer {api_key}"
+                    
+                resp = requests.get(base_url, headers=headers, timeout=10)
+                
+                session_id = resp.headers.get("X-Session-ID") or resp.headers.get("Set-Cookie")
+                
+                if session_id:
+                    return jsonify({"success": True, "session_id": session_id, "source": "response"})
+                else:
+                    return jsonify({"success": True, "session_id": str(uuid.uuid4()), "source": "generated"})
+                    
+            except Exception as e:
+                return jsonify({"success": False, "error": f"Gagal fetch target: {str(e)}"}), 500
+                
+    return jsonify({"error": "Not Found"}), 404
+
+
 if __name__ == "__main__":
-    # Port configurable via TOOLS_PORT env, default 9090 (safe untuk Termux non-root)
     _port = int(os.getenv("TOOLS_PORT", os.getenv("BACKEND_PORT", 9090)))
     if _port < 1024:
         print(f"[tool-server] Port {_port} < 1024, naikkan ke 9090 (Termux non-root)", file=sys.stderr)
