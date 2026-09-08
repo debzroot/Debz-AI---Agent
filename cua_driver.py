@@ -16,6 +16,7 @@ Endpoints (dipanggil backend.py):
 
 import base64
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -33,6 +34,22 @@ LOGS_DIR.mkdir(exist_ok=True)
 ENV = {**os.environ, "DISPLAY": CUA_DISPLAY}
 
 
+# ================== DEPENDENCY CHECK ==================
+def _check_cua_deps() -> dict:
+    """Cek ketersediaan Xvfb, openbox, xdotool. Return dict {ok, missing}."""
+    required = {"Xvfb": shutil.which("Xvfb"),
+                "openbox": shutil.which("openbox"),
+                "xdotool": shutil.which("xdotool")}
+    missing = [name for name, path in required.items() if not path]
+    if missing:
+        print(f"[cua_driver] WARNING: Missing deps: {', '.join(missing)}", file=sys.stderr)
+        print(f"[cua_driver] Install via: pkg install x11-repo && pkg install {' '.join(missing)}", file=sys.stderr)
+    return {"ok": len(missing) == 0, "missing": missing}
+
+# Jalankan sekali saat module load
+_CUA_DEPS = _check_cua_deps()
+
+
 # ================== BOOTSTRAP ==================
 def _proc_running(pattern: str) -> bool:
     try:
@@ -44,6 +61,10 @@ def _proc_running(pattern: str) -> bool:
 
 def start_xvfb():
     """Pastikan Xvfb + openbox jalan di display virtual."""
+    # Skip kalau deps belum ada (backend.py sudah try/except)
+    if not _CUA_DEPS["ok"]:
+        return
+
     if not _proc_running(rf"Xvfb\s+{CUA_DISPLAY}"):
         log = open(LOGS_DIR / "xvfb.log", "a")
         subprocess.Popen(
@@ -60,6 +81,8 @@ def start_xvfb():
 def _xdo(*args, timeout=15):
     """Jalankan xdotool dengan DISPLAY virtual."""
     start_xvfb()
+    if not shutil.which("xdotool"):
+        return {"rc": -1, "out": "", "err": "xdotool tidak terinstall"}
     try:
         r = subprocess.run(
             ["xdotool"] + list(args),
@@ -78,16 +101,24 @@ def screenshot(prefix="shot"):
     start_xvfb()
     ts = time.strftime("%Y%m%d_%H%M%S")
     path = SHOTS_DIR / f"{prefix}_{ts}.png"
+
+    scrot_bin = shutil.which("scrot")
+    import_bin = shutil.which("import")
+
+    if not scrot_bin and not import_bin:
+        return {"ok": False, "error": "gak ada scrot & import (ImageMagick) — install dulu", "path": str(path)}
+
     r = subprocess.run(
-        ["scrot", "-o", str(path)],
+        [scrot_bin or "scrot", "-o", str(path)],
         capture_output=True, text=True, timeout=20, env=ENV,
     )
     if r.returncode != 0 or not path.exists():
         # fallback: ImageMagick import
-        r2 = subprocess.run(
-            ["import", "-window", "root", str(path)],
-            capture_output=True, text=True, timeout=25, env=ENV,
-        )
+        if import_bin:
+            r2 = subprocess.run(
+                [import_bin, "-window", "root", str(path)],
+                capture_output=True, text=True, timeout=25, env=ENV,
+            )
         if not path.exists():
             return {"ok": False, "error": f"scrot gagal: {r.stderr[:300]}", "path": str(path)}
     b64 = base64.b64encode(path.read_bytes()).decode("ascii")
@@ -203,6 +234,7 @@ def status():
         "display": CUA_DISPLAY,
         "screen": CUA_SCREEN,
         "geometry": geo,
+        "deps": _CUA_DEPS,
         "windows": wins[:10],
     }
 
@@ -235,6 +267,13 @@ def launch(cmd):
 def run(action: str, body: dict):
     """Dispatcher dipanggil endpoint /api/cua."""
     action = str(action or "").lower()
+
+    # Guard: kalau deps belum lengkap, kasih pesan jelas
+    if not _CUA_DEPS["ok"]:
+        return {"ok": False,
+                "error": f"CUA deps belum lengkap: {', '.join(_CUA_DEPS['missing'])}. "
+                         f"Jalankan: pkg install x11-repo && pkg install {' '.join(_CUA_DEPS['missing'])}"}
+
     start_xvfb()
 
     if action == "status":

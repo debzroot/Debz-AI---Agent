@@ -59,6 +59,86 @@ webui_up()   { curl -s -m 2 -o /dev/null -w '%{http_code}' "http://127.0.0.1:$WE
 tools_up()   { curl -s -m 2 "http://127.0.0.1:$TOOLS_PORT/api/health" >/dev/null 2>&1; }
 
 # ---------------------------------------------------------------------------
+# 0) AUTO-PORT FIX untuk Termux (port < 124 tidak bisa bind)
+# ---------------------------------------------------------------------------
+auto_fix_port() {
+    PM=$(detect_pm)
+    if [ "$PM" = "termux" ] && [ "$WEBUI_PORT" -lt 124 ] 2>/dev/null; then
+        OLD_PORT="$WEBUI_PORT"
+        WEBUI_PORT=666
+        warn "Termux: port $OLD_PORT < 124 gak bisa bind — WebUI naik ke port $WEBUI_PORT"
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# 1a) INSTALL CUA DEPENDENCIES (Xvfb, openbox, xdotool)
+# ---------------------------------------------------------------------------
+install_cua_deps() {
+    PM=$(detect_pm)
+    CUA_PKGS=""
+    case "$PM" in
+        termux)
+            # Termux: perlu x11-repo dulu buat akses xvfb, openbox, xdotool
+            CUA_PKGS="xvfb openbox xdotool scrot"
+            # Pastikan x11-repo ada
+            if ! pkg list-installed 2>/dev/null | grep -q "x11-repo"; then
+                info "Installing x11-repo (Termux)..."
+                pkg install -y x11-repo 2>/dev/null || apt install -y x11-repo 2>/dev/null || warn "gagal install x11-repo"
+            fi
+            ;;
+        apk)
+            CUA_PKGS="xvfb openbox xdotool scrot"
+            ;;
+        apt)
+            CUA_PKGS="xvfb openbox xdotool scrot imagemagick"
+            ;;
+        dnf)
+            CUA_PKGS="xorg-x11-server-Xvfb openbox xdotool scrot ImageMagick"
+            ;;
+        none)
+            warn "Package manager gak terdeteksi — skip install CUA deps"
+            return 0
+            ;;
+    esac
+
+    if [ -z "$CUA_PKGS" ]; then
+        return 0
+    fi
+
+    # Cek mana yang belum ada
+    MISSING=""
+    for bin_name in Xvfb openbox xdotool scrot; do
+        command -v "$bin_name" >/dev/null 2>&1 || MISSING="$MISSING $bin_name"
+    done
+
+    if [ -n "$MISSING" ]; then
+        info "Installing CUA dependencies:$MISSING"
+        case "$PM" in
+            termux)
+                pkg install -y $CUA_PKGS 2>/dev/null || apt install -y $CUA_PKGS 2>/dev/null || warn "gagal install CUA deps"
+                ;;
+            apk)
+                apk add --no-cache $CUA_PKGS 2>/dev/null || warn "gagal install CUA deps"
+                ;;
+            apt)
+                DEBIAN_FRONTEND=noninteractive apt-get install -y $CUA_PKGS 2>/dev/null || warn "gagal install CUA deps"
+                ;;
+            dnf)
+                dnf install -y $CUA_PKGS 2>/dev/null || warn "gagal install CUA deps"
+                ;;
+        esac
+        # Validasi
+        if command -v Xvfb >/dev/null 2>&1; then
+            ok "CUA deps terinstall (Xvfb, openbox, xdotool)"
+        else
+            warn "Beberapa CUA deps belum terinstall — CUA (Computer Use) mungkin gak jalan"
+        fi
+    else
+        ok "CUA deps sudah lengkap"
+    fi
+}
+
+# ---------------------------------------------------------------------------
 # 1) INSTALL SYSTEM DEPENDENCIES
 # ---------------------------------------------------------------------------
 install_system_deps() {
@@ -345,6 +425,12 @@ status() {
     else
         printf '  \033[31m[x]\033[0m Browser daemon → port %s  (mati/opsional)\n' "$PW_PORT"
     fi
+    # CUA status
+    if command -v Xvfb >/dev/null 2>&1 && command -v xdotool >/dev/null 2>&1; then
+        printf '  \033[32m[✓]\033[0m CUA (CUA)    → deps lengkap (Xvfb + xdotool)\n'
+    else
+        printf '  \033[33m[!]\033[0m CUA (CUA)    → deps belum lengkap (opsional)\n'
+    fi
     # Config
     if [ -f "$SCRIPT_DIR/.ai-providers.json" ]; then
         printf '  \033[32m[✓]\033[0m Config        → .ai-providers.json (atur API key & model di WebUI ⚙️)\n'
@@ -375,10 +461,13 @@ success_banner() {
 # ---------------------------------------------------------------------------
 # MAIN
 # ---------------------------------------------------------------------------
+auto_fix_port
+
 case "${1:-start}" in
     install)
         ensure_config
         install_system_deps
+        install_cua_deps
         install_python_deps
         install_playwright
         setup_cli_cmd
@@ -387,6 +476,7 @@ case "${1:-start}" in
     start)
         ensure_config
         install_system_deps
+        install_cua_deps
         install_python_deps
         install_playwright
         setup_cli_cmd

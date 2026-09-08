@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!usr/bin/env python3
 """
 c0n73xt Tool Server — "tangan CLI" buat agent UX (Flask Version)
 ================================================================
@@ -640,8 +640,15 @@ def api_pkg():
 
 # ================= CUA (Computer Use Agent) driver =================
 # "Tangan & mata" AI di layar virtual — lihat cua_driver.py
-import cua_driver as _cua
-_cua.start_xvfb()
+# OPSIONAL: kalau cua_driver gak ada / deps belum lengkap, CUA tetap bisa jalan
+_CUA_AVAILABLE = False
+_cua = None
+try:
+    import cua_driver as _cua
+    _cua.start_xvfb()
+    _CUA_AVAILABLE = True
+except Exception as _cua_err:
+    print(f"[tool-server] CUA disabled: {_cua_err}", file=sys.stderr)
 
 
 @app.post("/api/cua")
@@ -649,6 +656,13 @@ def api_cua():
     deny = _auth()
     if deny:
         return deny
+    if not _CUA_AVAILABLE:
+        return jsonify({
+            "ok": False,
+            "error": f"CUA belum aktif — {_cua_err}. "
+                     "Pastikan Xvfb, openbox, xdotool terinstall. "
+                     "Jalankan: pkg install x11-repo && pkg install xvfb openbox xdotool"
+        }), 200
     body = request.get_json(silent=True) or {}
     action = str(body.get("action", "")).strip()
     try:
@@ -663,6 +677,8 @@ def api_screenshot():
     deny = _auth()
     if deny:
         return deny
+    if not _CUA_AVAILABLE:
+        return jsonify({"ok": False, "error": "CUA belum aktif — install deps dulu"}), 500
     try:
         shot = _cua.screenshot()
         if not shot.get("ok"):
