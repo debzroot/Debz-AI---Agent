@@ -387,14 +387,23 @@ setup_cli_cmd() {
 #     php -S (built-in) single-threaded -> gampang macet kalau 1 request nge-block.
 #     Solusi worth-it: nginx (frontend, fast) + php-fpm (pool 8 child workers).
 #     Config di-generate otomatis ke $SCRIPT_DIR/config/ (self-contained).
+#     NOTE: config auto-regenerate kalau stale (dari mesin lain / versi lama /
+#     belum include mime.types) -> hasil git clone langsung jalan, tanpa setting manual.
 # ---------------------------------------------------------------------------
+needs_regen() { # <file> [pattern_wajib]
+    [ ! -f "$1" ] && return 0
+    grep -Fq "$SCRIPT_DIR" "$1" || return 0
+    [ -n "$2" ] && { grep -q "$2" "$1" || return 0; }
+    return 1
+}
+
 ensure_webui_fpm() {
     CONF_DIR="$SCRIPT_DIR/config"
     mkdir -p "$CONF_DIR"
 
     # --- php-fpm pool config ---
     FPM_CONF="$CONF_DIR/webui-fpm.conf"
-    if [ ! -f "$FPM_CONF" ]; then
+    if needs_regen "$FPM_CONF"; then
         cat > "$FPM_CONF" <<EOF
 [global]
 error_log = $LOG_DIR/webui-fpm.log
@@ -414,7 +423,7 @@ EOF
 
     # --- nginx config ---
     NGX_CONF="$CONF_DIR/webui-nginx.conf"
-    if [ ! -f "$NGX_CONF" ]; then
+    if needs_regen "$NGX_CONF" "mime.types"; then
         cat > "$NGX_CONF" <<EOF
 worker_processes 1;
 error_log  $LOG_DIR/nginx-error.log;
@@ -428,6 +437,7 @@ http {
     access_log         $LOG_DIR/nginx-access.log;
     sendfile           on;
     client_max_body_size 50m;
+    include        $PREFIX/etc/nginx/mime.types;
 
     server {
         listen       $WEBUI_PORT;
@@ -454,57 +464,6 @@ http {
 }
 EOF
         info "Config nginx dibuat -> $NGX_CONF (frontend ke php-fpm)"
-    fi
-}
-
-# ---------------------------------------------------------------------------
-# 5) START SERVICES
-# ---------------------------------------------------------------------------
-start_services() {
-    # --- Tool server (backend.py, Flask) ---
-    if is_running "backend.py"; then
-        ok "Tool server sudah jalan (port $TOOLS_PORT)"
-    else
-        info "Start tool server (backend.py) di port $TOOLS_PORT..."
-        setsid sh -c "nohup '$VENV_PY' '$SCRIPT_DIR/backend.py' >> '$LOG_DIR/backend.log' 2>&1 &" < /dev/null
-        sleep 2
-        if tools_up; then ok "Tool server aktif → http://127.0.0.1:$TOOLS_PORT"
-        else warn "Tool server belum merespon — cek $LOG_DIR/backend.log"; fi
-    fi
-
-    # --- WebUI (nginx + php-fpm, 8 workers) ---
-    if is_running "nginx.*$SCRIPT_DIR"; then
-        ok "WebUI sudah jalan (port $WEBUI_PORT)"
-    else
-        info "Start WebUI (nginx + php-fpm 8 workers) di port $WEBUI_PORT..."
-        ensure_webui_fpm
-        # 1) php-fpm dulu (biar socket siap sebelum nginx)
-        if ! is_running "php-fpm.*$SCRIPT_DIR"; then
-            setsid sh -c "nohup php-fpm -y '$SCRIPT_DIR/config/webui-fpm.conf' >> '$LOG_DIR/webui-fpm.log' 2>&1 &" < /dev/null
-        fi
-        sleep 2
-        # 2) nginx frontend
-        setsid sh -c "nohup nginx -c '$SCRIPT_DIR/config/webui-nginx.conf' -p '$SCRIPT_DIR/' >> '$LOG_DIR/webui.log' 2>&1 &" < /dev/null
-        sleep 2
-        if [ "$(webui_up)" = "200" ] || [ "$(webui_up)" = "302" ]; then
-            ok "WebUI aktif → http://127.0.0.1:$WEBUI_PORT"
-        else
-            warn "WebUI belum merespon — cek $LOG_DIR/webui.log & $LOG_DIR/nginx-error.log"
-        fi
-    fi
-
-    # --- Browser daemon (opsional) ---
-    if command -v node >/dev/null 2>&1 && npm ls -g playwright >/dev/null 2>&1; then
-        if is_running "pw_daemon.mjs"; then
-            ok "Browser daemon sudah jalan (port $PW_PORT)"
-        else
-            info "Start browser daemon (port $PW_PORT)..."
-            "$SCRIPT_DIR/pw_daemon.sh" start >/dev/null 2>&1 || true
-            sleep 2
-            "$SCRIPT_DIR/pw_daemon.sh" status | sed 's/^/    /'
-        fi
-    else
-        warn "Browser daemon dilewati (butuh node + playwright)"
     fi
 }
 
