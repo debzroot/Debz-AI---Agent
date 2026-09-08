@@ -29,6 +29,7 @@ LOG_DIR="$SCRIPT_DIR/logs"
 VENV_DIR="$SCRIPT_DIR/venv"
 VENV_PY="$VENV_DIR/bin/python"
 REQ="$SCRIPT_DIR/requirements.txt"
+USE_VENV=1
 mkdir -p "$LOG_DIR"
 
 # ---------------------------------------------------------------------------
@@ -41,7 +42,10 @@ err()   { printf '\033[31m[x]\033[0m %s\n'   "$*"; }
 die()   { err "$*"; exit 1; }
 
 detect_pm() {
-    if command -v apk >/dev/null 2>&1; then echo apk
+    # Termux: PREFIX di-set & berisi com.termux, atau ada command pkg
+    if [ -n "$PREFIX" ] && printf '%s' "$PREFIX" | grep -q "com.termux"; then echo termux
+    elif command -v pkg >/dev/null 2>&1; then echo termux
+    elif command -v apk >/dev/null 2>&1; then echo apk
     elif command -v apt-get >/dev/null 2>&1; then echo apt
     elif command -v dnf >/dev/null 2>&1; then echo dnf
     else echo none; fi
@@ -60,6 +64,29 @@ tools_up()   { curl -s -m 2 "http://127.0.0.1:$TOOLS_PORT/api/health" >/dev/null
 install_system_deps() {
     PM=$(detect_pm)
     case "$PM" in
+        termux)
+            # Termux: nama paket beda dari Debian/Ubuntu
+            NEED="php python nodejs-lts chromium curl"
+            MISSING=""
+            for c in php python3 node chromium curl; do
+                command -v "$c" >/dev/null 2>&1 || MISSING="$MISSING $c"
+            done
+            if [ -n "$MISSING" ]; then
+                info "Menginstall package system (Termux):$MISSING"
+                pkg update -y || apt update -y || die "gagal pkg update"
+                pkg install -y $NEED || apt install -y $NEED || die "gagal pkg install"
+            fi
+            # pip (di beberapa versi Termux, pip terpisah di paket python-pip)
+            if ! python3 -m pip --version >/dev/null 2>&1; then
+                pkg install -y python-pip 2>/dev/null || warn "pip belum terinstall — jalankan: pkg install python-pip"
+            fi
+            # PHP modul (curl/session/sqlite3/json sudah built-in di paket php Termux)
+            for m in curl session sqlite3 json; do
+                php -m 2>/dev/null | grep -qix "$m" || warn "php-$m tidak tersedia (opsional — cek: php -m)"
+            done
+            # Termux single-user → tanpa venv, pip langsung ke system python
+            USE_VENV=0
+            ;;
         apk)
             # Alpine: PHP + Python + Node + Chromium
             NEED="php python3 py3-pip nodejs npm chromium"
@@ -117,6 +144,21 @@ install_system_deps() {
 install_python_deps() {
     REQ_MODS="flask flask_sock requests rich prompt_toolkit"
 
+    # Mode tanpa venv (Termux): pakai python system langsung
+    if [ "$USE_VENV" = "0" ]; then
+        VENV_PY="$(command -v python3)"
+        if "$VENV_PY" -c "import flask, flask_sock, requests, rich, prompt_toolkit" 2>/dev/null; then
+            ok "Python dependencies sudah lengkap"
+            return 0
+        fi
+        info "Install Python dependencies via pip (system python)..."
+        "$VENV_PY" -m pip install -q -r "$REQ" 2>/dev/null || warn "pip install gagal — pastikan koneksi internet"
+        "$VENV_PY" -c "import flask, flask_sock, requests, rich, prompt_toolkit" 2>/dev/null \
+            || die "Dependency Python tidak lengkap. Jalankan: $VENV_PY -m pip install -r $REQ"
+        ok "Python dependencies OK"
+        return 0
+    fi
+
     if [ ! -x "$VENV_PY" ]; then
         info "Membuat virtualenv Python (--system-site-packages)..."
         python3 -m venv --system-site-packages "$VENV_DIR" || die "gagal buat venv"
@@ -155,11 +197,11 @@ install_playwright() {
         warn "Node tidak ada — browser daemon dilewati"
         return 0
     fi
-    if [ ! -d /usr/local/lib/node_modules/playwright ]; then
+    if npm ls -g playwright >/dev/null 2>&1; then
+        ok "Playwright sudah terinstall"
+    else
         info "Install playwright (global)..."
         npm install -g playwright 2>/dev/null && ok "Playwright OK" || warn "gagal install playwright (opsional)"
-    else
-        ok "Playwright sudah terinstall"
     fi
     # Chromium untuk playwright
     if command -v chromium >/dev/null 2>&1; then
@@ -192,14 +234,15 @@ ensure_config() {
 setup_cli_cmd() {
     chmod +x "$SCRIPT_DIR/debz-term" "$SCRIPT_DIR/debz-term.py" "$SCRIPT_DIR/debz.sh" "$SCRIPT_DIR/pw_daemon.sh" 2>/dev/null || true
 
-    # Pilih direktori yang benar-benar ada di PATH (prioritas: /usr/local/bin, /usr/bin, ~/.local/bin)
+    # Pilih direktori yang benar-benar ada di PATH
+    # (prioritas: $PREFIX/bin untuk Termux, lalu /usr/local/bin, /usr/bin, ~/.local/bin)
     BIN_DIR=""
-    for d in /usr/local/bin /usr/bin "$HOME/.local/bin"; do
+    for d in "$PREFIX/bin" /usr/local/bin /usr/bin "$HOME/.local/bin"; do
         case ":$PATH:" in
             *":$d:"*) BIN_DIR="$d"; break ;;
         esac
     done
-    [ -z "$BIN_DIR" ] && BIN_DIR=/usr/local/bin
+    [ -z "$BIN_DIR" ] && BIN_DIR="${PREFIX:-/usr/local}/bin"
     mkdir -p "$BIN_DIR" 2>/dev/null || true
 
     # Replace command lama yang masih hardcode path (biar portabel)
@@ -247,7 +290,7 @@ start_services() {
     fi
 
     # --- Browser daemon (opsional) ---
-    if command -v node >/dev/null 2>&1 && [ -d /usr/local/lib/node_modules/playwright ]; then
+    if command -v node >/dev/null 2>&1 && npm ls -g playwright >/dev/null 2>&1; then
         if is_running "pw_daemon.mjs"; then
             ok "Browser daemon sudah jalan (port $PW_PORT)"
         else

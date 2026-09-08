@@ -102,6 +102,28 @@ Script `debz.sh` otomatis:
 
 ---
 
+
+---
+
+## 📱 Jalan di Termux (Android)
+
+Debz AI bisa dijalanin langsung dari **Termux** di HP Android. Script `debz.sh` otomatis
+mendeteksi Termux dan pakai nama paket yang benar (`pkg`, bukan `apt`).
+
+```bash
+pkg install git -y
+git clone https://github.com/debzroot/Debz-AI---Agent.git debz_ai
+cd debz_ai
+./debz.sh
+```
+
+> 📌 **Catatan Termux:**
+> - Kalau muncul error `Permission denied` saat clone, cek dulu SSH key (cara di atas pakai HTTPS jadi aman).
+> - Kalau `./debz.sh` nggak bisa dieksekusi, jalankan `bash debz.sh`.
+> - Di Termux, dependency Python diinstall langsung ke system (tanpa venv) biar lebih ringan & cepat.
+> - Browser daemon opsional — kalau Chromium/Playwright gagal terpasang, chat & tools tetap jalan normal.
+
+
 ## ⚙️ Setup Pertama Kali (WAJIB)
 
 Setelah clone & start, project masih **belum punya API key** (default kosong, aman). Isi dulu biar bisa dipakai:
@@ -221,7 +243,7 @@ Ada 2 file config:
 
 ## 🧪 Requirement
 
-- Linux (Alpine / Debian / Ubuntu / Fedora) — script auto-detect package manager
+- Linux (Alpine / Debian / Ubuntu / Fedora) atau **Termux** (Android) — script auto-detect
 - PHP CLI 8+, Python 3.10+, Node 18+ (buat browser daemon), Chromium (opsional)
 - Koneksi internet saat install pertama
 
