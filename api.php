@@ -1,4 +1,6 @@
 <?php
+ini_set('display_errors', 0);
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_NOTICE);
 
 set_time_limit(0);
 try {
@@ -236,26 +238,26 @@ if (isset($_GET['action']) && $_GET['action'] === 'providers') {
             }
             if (!preg_match('#^https?:\/\/#i', $gUrl)) { http_response_code(400); echo json_encode(['error' => 'base_url invalid']); exit; }
             $gUa = trim((string)($in['ua'] ?? ''));
-            if ($gUa === '' && stripos($gUrl, 'openrouter.ai') !== false) $gUa = 'opencode\/1.0 (linux; x64)';
-            $gHeaders = ['Authorization: Bearer ' . $gKey];
-            if ($gUa !== '') $gHeaders[] = 'User-Agent: ' . $gUa;
-            $gHeaders[] = 'Accept: application\/json';
-            $foundSid = '';
-            $gSource = '';
-            $gErr = '';
-            // Coba 1: GET {base}/models — header x-session-id biasanya muncul di sini kalau server ngasih.
-            $curlM = curl_init(rtrim($gUrl, '\/') . '\/models');
-            curl_setopt_array($curlM, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => $gHeaders, CURLOPT_CONNECTTIMEOUT => 8, CURLOPT_TIMEOUT => 20, CURLOPT_SSL_VERIFYPEER => false, CURLOPT_SSL_VERIFYHOST => 0, CURLOPT_HEADER => true, CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1]);
-            $rawM = curl_exec($curlM);
-            if ($rawM !== false) {
-                $hdrM = substr($rawM, 0, (int)curl_getinfo($curlM, CURLINFO_HEADER_SIZE));
-                if (preg_match('/^x-session-id:\s*(.+)$/mi', $hdrM, $mM)) {
-                    $foundSid = trim($mM[1]);
-                    $gSource = 'response';
-                }
+                    if ($gUa === '' && stripos($gUrl, 'openrouter.ai') !== false) $gUa = 'opencode/1.0 (linux; x64)';
+        $gHeaders = ['Authorization: Bearer ' . $gKey];
+        if ($gUa !== '') $gHeaders[] = 'User-Agent: ' . $gUa;
+        $gHeaders[] = 'Accept: application/json';
+        $foundSid = '';
+        $gSource = '';
+        $gErr = '';
+        // Coba 1: GET {base}/models — header x-session-id biasanya muncul di sini kalau server ngasih.
+        $curlM = curl_init(rtrim($gUrl, '/') . '/models');
+        curl_setopt_array($curlM, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => $gHeaders, CURLOPT_CONNECTTIMEOUT => 8, CURLOPT_TIMEOUT => 20, CURLOPT_SSL_VERIFYPEER => false, CURLOPT_SSL_VERIFYHOST => 0, CURLOPT_HEADER => true, CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1]);
+        $rawM = curl_exec($curlM);
+        if ($rawM !== false) {
+            $hdrM = substr($rawM, 0, (int)curl_getinfo($curlM, CURLINFO_HEADER_SIZE));
+            if (preg_match('/^x-session-id:\s*(.+)$/mi', $hdrM, $mM)) {
+                $foundSid = trim($mM[1]);
+                $gSource = 'response';
             }
-            curl_close($curlM);
-            // Coba 2: kalau belum dapet, POST /chat/completions minimal (banyak server nyetel session id di sini).
+        }
+        curl_close($curlM);
+
             if ($foundSid === '') {
                 $bodyC = json_encode(['model' => 'test', 'messages' => [['role' => 'user', 'content' => 'hi']], 'max_tokens' => 1]);
                 $curlC = curl_init(rtrim($gUrl, '\/') . '\/chat\/completions');
