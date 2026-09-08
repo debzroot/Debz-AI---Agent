@@ -1,8 +1,8 @@
-#!usr/bin/env python3
+#!/usr/bin/env python3
 """
 c0n73xt Tool Server — "tangan CLI" buat agent UX (Flask Version)
 ================================================================
-Flask + Flask-Sock. Bind 0.0.0.0:999 (localhost ONLY).
+Flask + Flask-Sock. Bind 0.0.0.0:8080 (configurable via TOOLS_PORT env).
 """
 
 import os
@@ -191,7 +191,7 @@ def api_fs_list():
     if deny:
         return deny
     body = request.get_json(silent=True) or {}
-    path = str(body.get("path", "")).strip() or "/"
+    path = str(body.get("path", "/").strip() or "/")
     if not os.path.isdir(path):
         return jsonify({"error": f"folder gak ada: {path}"}), 404
     try:
@@ -259,8 +259,6 @@ def api_fs_search():
         return jsonify({"path": path, "pattern": pattern, "truncated": False, "results": results})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-
 
 
 # ================= NEW TOOLS — Debz AI expansion =================
@@ -637,18 +635,20 @@ def api_pkg():
                     "stdout": out[:8192], "stderr": err[:4096]}), 200
 
 
-
 # ================= CUA (Computer Use Agent) driver =================
 # "Tangan & mata" AI di layar virtual — lihat cua_driver.py
-# OPSIONAL: kalau cua_driver gak ada / deps belum lengkap, CUA tetap bisa jalan
+# OPSIONAL: kalau cua_driver gak ada / deps belum lengkap, backend tetap jalan
 _CUA_AVAILABLE = False
 _cua = None
+_cua_error_msg = ""  # simpan pesan error biar bisa diakses endpoint
+
 try:
     import cua_driver as _cua
     _cua.start_xvfb()
     _CUA_AVAILABLE = True
-except Exception as _cua_err:
-    print(f"[tool-server] CUA disabled: {_cua_err}", file=sys.stderr)
+except Exception as e:
+    _cua_error_msg = str(e)
+    print(f"[tool-server] CUA disabled: {e}", file=sys.stderr)
 
 
 @app.post("/api/cua")
@@ -659,7 +659,7 @@ def api_cua():
     if not _CUA_AVAILABLE:
         return jsonify({
             "ok": False,
-            "error": f"CUA belum aktif — {_cua_err}. "
+            "error": f"CUA belum aktif — {_cua_error_msg}. "
                      "Pastikan Xvfb, openbox, xdotool terinstall. "
                      "Jalankan: pkg install x11-repo && pkg install xvfb openbox xdotool"
         }), 200
@@ -778,7 +778,6 @@ def api_browser():
     return jsonify(data), 200
 
 
-
 # ================= WebSocket terminal =================
 
 @sock.route("/ws/terminal/<terminal_id>")
@@ -853,4 +852,10 @@ def terminal_websocket(ws, terminal_id):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=999)
+    # Port configurable via TOOLS_PORT env, default 8080 (safe untuk Termux non-root)
+    _port = int(os.getenv("TOOLS_PORT", os.getenv("BACKEND_PORT", 8080)))
+    if _port < 1024:
+        print(f"[tool-server] Port {_port} < 1024, naikkan ke 8080 (Termux non-root)", file=sys.stderr)
+        _port = 8080
+    print(f"[tool-server] Starting on port {_port}...", file=sys.stderr)
+    app.run(host="0.0.0.0", port=_port)

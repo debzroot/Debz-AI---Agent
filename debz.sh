@@ -12,7 +12,7 @@
 #    ./debz.sh help       → bantuan
 #
 #  Setelah start, akses:
-#    • WebUI  → http://127.0.0.1:666
+#    • WebUI  → http://127.0.0.1:8080
 #    • CLI    → ketik  debz-term
 # =============================================================================
 
@@ -20,8 +20,8 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 cd "$SCRIPT_DIR"
 
 # Konfigurasi (bisa di-override via env)
-WEBUI_PORT="${WEBUI_PORT:-666}"
-TOOLS_PORT="${TOOLS_PORT:-999}"
+WEBUI_PORT="${WEBUI_PORT:-8080}"
+TOOLS_PORT="${TOOLS_PORT:-9090}"
 PW_PORT="${PW_PORT:-9222}"
 HOST="${HOST:-0.0.0.0}"
 
@@ -59,8 +59,8 @@ webui_up()   { curl -s -m 2 -o /dev/null -w '%{http_code}' "http://127.0.0.1:$WE
 tools_up()   { curl -s -m 2 "http://127.0.0.1:$TOOLS_PORT/api/health" >/dev/null 2>&1; }
 
 # ---------------------------------------------------------------------------
-# 0) AUTO-PORT FIX untuk Termux (port < 1024 tidak bisa bind non-root,
-#    dan beberapa Termux menolak port tertentu seperti 666)
+# 0) AUTO-PORT FIX untuk Termux (port < 1024 tidak bisa bind non-root)
+#    Default sekarang 8080, tapi tetap guard kalau user override ke port kecil
 # ---------------------------------------------------------------------------
 TERMUX_SAFE_PORT="${TERMUX_SAFE_PORT:-8080}"
 
@@ -68,11 +68,47 @@ auto_fix_port() {
     PM=$(detect_pm)
     if [ "$PM" = "termux" ]; then
         # Termux non-root: port < 1024 gak bisa bind.
-        # Bonus: beberapa Termux juga tolak port 666 (spesifik build) → naikkan ke port aman.
+        # Juga beberapa build Termux menolak port tertentu → pastikan port aman
         if [ "$WEBUI_PORT" -lt 1024 ] 2>/dev/null; then
             OLD_PORT="$WEBUI_PORT"
             WEBUI_PORT="$TERMUX_SAFE_PORT"
             warn "Termux: port $OLD_PORT < 1024 gak bisa bind non-root — WebUI naik ke port $WEBUI_PORT"
+        fi
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# 0b) CLEAR PYTHON CACHE (__pycache__) — hindari file .pyc stale setelah git pull
+# ---------------------------------------------------------------------------
+clear_pycache() {
+    CLEARED=0
+    for d in "$SCRIPT_DIR" "$SCRIPT_DIR"/logs; do
+        if [ -d "$d/__pycache__" ]; then
+            rm -rf "$d/__pycache__"
+            CLEARED=$((CLEARED + 1))
+        fi
+    done
+    # Hapus .pyc files yang tersebar (max kedalaman 2)
+    find "$SCRIPT_DIR" -maxdepth 2 -name "*.pyc" -delete 2>/dev/null
+    if [ "$CLEARED" -gt 0 ]; then
+        info "Cleared $CLEARED __pycache__ dirs"
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# 0c) AUTO-UPDATE — pull dari GitHub kalau ada remote
+# ---------------------------------------------------------------------------
+auto_update() {
+    if [ -d "$SCRIPT_DIR/.git" ]; then
+        # Fetch untuk cek apakah ada update
+        LOCAL=$(git -C "$SCRIPT_DIR" rev-parse HEAD 2>/dev/null)
+        REMOTE=$(git -C "$SCRIPT_DIR" rev-parse @{u} 2>/dev/null)
+        if [ -n "$REMOTE" ] && [ "$LOCAL" != "$REMOTE" ]; then
+            info "Update tersedia — git pull..."
+            git -C "$SCRIPT_DIR" pull --ff-only 2>/dev/null \
+                && ok "Updated ke versi terbaru" \
+                || warn "git pull gagal — lanjut dengan versi saat ini"
+            clear_pycache
         fi
     fi
 }
@@ -473,6 +509,7 @@ auto_fix_port
 case "${1:-start}" in
     install)
         ensure_config
+        clear_pycache
         install_system_deps
         install_cua_deps
         install_python_deps
@@ -482,6 +519,8 @@ case "${1:-start}" in
         ;;
     start)
         ensure_config
+        clear_pycache
+        auto_update
         install_system_deps
         install_cua_deps
         install_python_deps
