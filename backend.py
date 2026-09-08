@@ -2,7 +2,7 @@
 """
 c0n73xt Tool Server — "tangan CLI" buat agent UX (Flask Version)
 ================================================================
-Flask + Flask-Sock. Bind 0.0.0.0:8080 (configurable via TOOLS_PORT env).
+Flask + Flask-Sock. Bind 0.0.0.0:9090 (configurable via TOOLS_PORT env).
 """
 
 import os
@@ -852,10 +852,10 @@ def terminal_websocket(ws, terminal_id):
 
 
 if __name__ == "__main__":
-    # Port configurable via TOOLS_PORT env, default 8080 (safe untuk Termux non-root)
-    _port = int(os.getenv("TOOLS_PORT", os.getenv("BACKEND_PORT", 8080)))
+    # Port configurable via TOOLS_PORT env, default 9090 (safe untuk Termux non-root)
+    _port = int(os.getenv("TOOLS_PORT", os.getenv("BACKEND_PORT", 9090)))
     if _port < 1024:
-        print(f"[tool-server] Port {_port} < 1024, naikkan ke 8080 (Termux non-root)", file=sys.stderr)
-        _port = 8080
+        print(f"[tool-server] Port {_port} < 1024, naikkan ke 9090 (Termux non-root)", file=sys.stderr)
+        _port = 9090
     print(f"[tool-server] Starting on port {_port}...", file=sys.stderr)
     app.run(host="0.0.0.0", port=_port)
