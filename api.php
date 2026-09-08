@@ -448,7 +448,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'compact') {
         exit;
     }
     require_once __DIR__ . '/agent.php';
-    $pC = $P ?: ['base_url' => 'http://127.0.0.1:20128/v1', 'api_key' => 'sk-0798309d3f284b1e-zbiuk6-21626984', 'model' => 'debz_ai'];
+    $pC = $P ?: ['base_url' => 'http://127.0.0.1:20128/v1', 'api_key' => '', 'model' => 'debz_ai'];
     $transkrip = '';
     foreach ($inC['messages'] as $mC) {
         $rC = ($mC['role'] ?? '') === 'user' ? 'LU' : 'DEBZ';

@@ -1,11 +1,26 @@
-; AI Chat Configuration — contoh (isi API key kamu sendiri)
-; c0n73xt = platform agent MANDIRI by Debz
+; =============================================================
+;  Debz AI — contoh konfigurasi (.ai-config.ini)
+;  File ini cuma TEMPLATE. Saat ./debz.sh dijalankan pertama kali,
+;  file ini otomatis disalin jadi .ai-config.ini (yang asli).
+;
+;  API key utama diatur lewat WebUI (tombol ⚙️ Settings), bukan di sini.
+;  Bagian bawah ini untuk pengaturan lanjutan saja.
+; =============================================================
 
+; API key legacy / fallback (opsional — umumnya kosongkan,
+; karena key utama diatur lewat WebUI Settings)
 AI_API_KEY=
-AI_ENDPOINT=https://openrouter.ai/api/v1/chat/completions
-MODEL=openai/gpt-4o-mini
 
-; Token buat tool server (backend.py)
+; Endpoint default (OpenAI-compatible). Dipakai untuk mode chat/compact.
+AI_ENDPOINT=https://openrouter.ai/api/v1/chat/completions
+
+; Model default (fallback kalau belum diatur di WebUI)
+AI_MODEL=openai/gpt-4o-mini
+
+; -------------------------------------------------------------
+; Token buat tool server (backend.py) — WAJIB diisi.
+; Kalau kosong, tool server nggak mau start.
+; -------------------------------------------------------------
 AI_TOOLS_TOKEN=GANTI_TOKEN_ACAK_PANJANG
 AI_TOOLS_PORT=999
 

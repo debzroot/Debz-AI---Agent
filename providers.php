@@ -29,7 +29,7 @@ function providers_defaults() {
             'debz' => [
                 'name' => 'Debz Combo (20128)',
                 'base_url' => 'http://127.0.0.1:20128/v1',
-                'api_key' => 'sk-0798309d3f284b1e-zbiuk6-21626984',
+                'api_key' => '',
                 'model' => 'debz_ai',
                 'mode' => 'native',
                 'enabled' => true
