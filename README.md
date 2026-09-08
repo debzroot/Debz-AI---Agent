@@ -42,8 +42,45 @@ Tampilan WebUI (mode mobile/HP — di desktop juga bisa, tinggal buka di browser
 
 ## 🚀 Quick Start
 
+Pilih salah satu cara download di bawah ini, lalu jalanin `./debz.sh`.
+
+### Cara 1 — Git Clone (HTTPS) ⭐ paling umum
+
 ```bash
-git clone git@github.com:debzroot/Debz-AI---Agent.git debz_ai
+git clone https://github.com/debzroot/Debz-AI---Agent.git debz_ai
+cd debz_ai
+./debz.sh
+```
+
+### Cara 2 — Download ZIP (tanpa git, paling gampang)
+
+Buka link ini di browser, langsung ke-download:
+
+```
+https://github.com/debzroot/Debz-AI---Agent/archive/refs/heads/main.zip
+```
+
+Lalu:
+1. **Extract** file `main.zip` → jadi folder `Debz-AI---Agent-main`
+2. Rename jadi `debz_ai` (biar rapi):
+   ```bash
+   mv Debz-AI---Agent-main debz_ai
+   ```
+3. Masuk folder & jalankan:
+   ```bash
+   cd debz_ai
+   ./debz.sh
+   ```
+
+> 💡 **Cara 2 alternatif**: buka halaman repo di GitHub → klik tombol hijau **`<> Code`** → pilih **Download ZIP**.
+
+> 🔑 **Buat yang suka SSH**: `git clone git@github.com:debzroot/Debz-AI---Agent.git debz_ai` (perlu SSH key terdaftar dulu di GitHub).
+
+---
+
+### ▶️ Setelah download, tinggal jalanin:
+
+```bash
 cd debz_ai
 ./debz.sh
 ```
