@@ -141,7 +141,7 @@ Cara ganti:
 
 WebUI udah dibekali **Eruda** — console, network, dan DOM inspector ala DevTools browser, tapi jalan di dalam halaman (cocok buat akses dari HP).
 
-- Muncul sebagai tombol **floating** di sisi kanan bawah layar
+- Muncul sebagai tombol **floating** di sisi kanan bawah layar bisa di geser bebas tata letaknya.
 - Tap buat buka panel: Console, Elements, Network, Resources, Sources, dan lainnya
 - Berguna banget buat debugging JS WebUI langsung dari HP
 
@@ -207,7 +207,6 @@ Ada 2 file config:
 | `.ai-config.ini` | Token tool server, port, max token | Edit manual / WebUI |
 
 - Saat clone pertama, kedua file **otomatis dibuat dari `.example`** oleh `./debz.sh`, jadi langsung jalan.
-- **Jangan pernah commit `.ai-config.ini` & `.ai-providers.json`** — isinya API key asli. Dua file itu sudah masuk `.gitignore`, jadi aman.
 
 ---
 
