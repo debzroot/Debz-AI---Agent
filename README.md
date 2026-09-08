@@ -118,10 +118,10 @@ cd debz_ai
 ```
 
 > 📌 **Catatan Termux:**
-> - Kalau muncul error `Permission denied` saat clone, cek dulu SSH key (cara di atas pakai HTTPS jadi aman).
 > - Kalau `./debz.sh` nggak bisa dieksekusi, jalankan `bash debz.sh`.
 > - Di Termux, dependency Python diinstall langsung ke system (tanpa venv) biar lebih ringan & cepat.
-> - Browser daemon opsional — kalau Chromium/Playwright gagal terpasang, chat & tools tetap jalan normal.
+> - Browser daemon opsional — kalau Chromium/Playwright gagal terpasang, chat & tools tetap jalan normal, tapi lebih baik install manual jika gagal.
+> - Gagal pasang cua_driver? install manual dengan command : curl -fsSL https://cua.ai/driver/install.sh | bash -s -- --channel nightly
 
 
 ## ⚙️ Setup Pertama Kali (WAJIB)
@@ -129,13 +129,14 @@ cd debz_ai
 Setelah clone & start, project masih **belum punya API key** (default kosong, aman). Isi dulu biar bisa dipakai:
 
 1. Buka **http://127.0.0.1:8080** di browser
-2. Klik tombol **⚙️ Settings** (pojok kanan atas)
+2. Klik tombol **⚙️ Settings** (menu sidebar)
 3. Di kartu provider **OpenRouter (default)**:
    - **API Key** → isi key kamu (buat di [openrouter.ai/keys](https://openrouter.ai/keys) — gratis)
    - **Model** → pilih model, misal `openai/gpt-4o-mini`, atau klik **📂 Model** buat lihat daftar
    - Klik **Test Koneksi** dulu buat mastiin berhasil
    - Klik **Simpan**
 4. Balik ke halaman chat, langsung bisa dipakai ✅
+5. jika error 400, coba generate X-Session-ID dari menu edit provider.
 
 > 💡 **Bisa pakai provider lain juga** — di Settings, klik **+ Tambah Provider**, isi Base URL + API key + model. Yang penting endpoint-nya OpenAI-compatible (format `/v1`). Misal: OpenAI, Groq, Ollama lokal, atau server AI sendiri.
 
@@ -143,7 +144,7 @@ Setelah clone & start, project masih **belum punya API key** (default kosong, am
 
 ## 🔑 Ganti Password WebUI
 
-Password default WebUI ada di file **`index.php`**, baris paling atas:
+Password default WebUI "123456" silahkan ganti sesuai keinginan di **`index.php`**, baris paling atas:
 
 ```php
 define('AUTH_PASSWORD', 'ganti-ini-password-kamu');
