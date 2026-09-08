@@ -265,19 +265,19 @@ install_system_deps() {
 # 2) PYTHON VENV + DEPENDENCIES
 # ---------------------------------------------------------------------------
 install_python_deps() {
-    REQ_MODS="flask flask_sock requests rich prompt_toolkit"
-
     # Mode tanpa venv (Termux): pakai python system langsung
     if [ "$USE_VENV" = "0" ]; then
         VENV_PY="$(command -v python3)"
-        if "$VENV_PY" -c "import flask, flask_sock, requests, rich, prompt_toolkit" 2>/dev/null; then
+        if "$VENV_PY" -c "import flask, flask_sock, requests, rich, prompt_toolkit, flask_cors" 2>/dev/null; then
             ok "Python dependencies sudah lengkap"
             return 0
         fi
         info "Install Python dependencies via pip (system python)..."
-        "$VENV_PY" -m pip install -q -r "$REQ" 2>/dev/null || warn "pip install gagal — pastikan koneksi internet"
-        "$VENV_PY" -c "import flask, flask_sock, requests, rich, prompt_toolkit" 2>/dev/null \
-            || die "Dependency Python tidak lengkap. Jalankan: $VENV_PY -m pip install -r $REQ"
+        "$VENV_PY" -m pip install -q -r "$REQ" 2>/dev/null || true
+        "$VENV_PY" -m pip install -q flask-cors requests 2>/dev/null || warn "pip install gagal — pastikan koneksi internet"
+        
+        "$VENV_PY" -c "import flask, flask_sock, requests, rich, prompt_toolkit, flask_cors" 2>/dev/null \
+            || die "Dependency Python tidak lengkap. Jalankan manual: pip install flask-cors requests"
         ok "Python dependencies OK"
         return 0
     fi
@@ -287,8 +287,8 @@ install_python_deps() {
         python3 -m venv --system-site-packages "$VENV_DIR" || die "gagal buat venv"
     fi
 
-    # Cepat: cek apakah semua modul sudah tersedia (di venv / system-site-packages)
-    if "$VENV_PY" -c "import flask, flask_sock, requests, rich, prompt_toolkit" 2>/dev/null; then
+    # Cepat: cek apakah semua modul sudah tersedia
+    if "$VENV_PY" -c "import flask, flask_sock, requests, rich, prompt_toolkit, flask_cors" 2>/dev/null; then
         ok "Python dependencies sudah lengkap"
         return 0
     fi
@@ -298,10 +298,6 @@ install_python_deps() {
         warn "venv lama tidak lengkap — recreate dengan --system-site-packages"
         rm -rf "$VENV_DIR"
         python3 -m venv --system-site-packages "$VENV_DIR" || die "gagal recreate venv"
-        if "$VENV_PY" -c "import flask, flask_sock, requests, rich, prompt_toolkit" 2>/dev/null; then
-            ok "Python dependencies lengkap (via system)"
-            return 0
-        fi
     fi
 
     # Install dependencies via pip
@@ -310,7 +306,7 @@ install_python_deps() {
     "$VENV_PY" -m pip install -q flask-cors requests 2>/dev/null || true
     
     "$VENV_PY" -c "import flask, flask_sock, requests, rich, prompt_toolkit, flask_cors" 2>/dev/null \
-        || die "Dependency Python tidak lengkap. Jalankan: $VENV_PY -m pip install flask-cors requests"
+        || die "Dependency Python tidak lengkap. Jalankan manual: pip install flask-cors requests"
     ok "Python dependencies OK"
 }
 
