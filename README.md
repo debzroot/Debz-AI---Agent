@@ -100,11 +100,6 @@ Script `debz.sh` otomatis:
   🛠️ Tool server → http://127.0.0.1:9090
 ```
 
----
-
-
----
-
 ## 📱 Jalan di Termux (Android)
 
 Debz AI bisa dijalanin langsung dari **Termux** di HP Android. Replace beberapa file dalam direktori /debz_ai dengan file fixed yang ada di **PATCH FOR ANDROID** (Wajib)
