@@ -35,7 +35,7 @@ Tampilan WebUI (mode mobile/HP — di desktop juga bisa, tinggal buka di browser
 - 🛠️ **Agent + Tools** — bisa eksekusi shell, baca/tulis file, buka browser, otomatis
 - 🌐 **WebUI** di `http://127.0.0.1:8080` — buat chat & atur konfigurasi
 - 💻 **CLI terminal** (`debz-term`) — buat yang lebih nyaman di terminal
-- 🔄 **Multi-provider** — bisa set beberapa provider + routing (fixed / round-robin / failover)
+- 🔄 **Multi-provider** — bisa set beberapa provider + routing (fixed / round-robin / failover) inspirasi dari 9router.
 - 📦 **Auto-install** — sekali jalanin `./debz.sh`, semua dependency kepasang otomatis
 - 🐛 **Eruda overlay** — console & debugger mobile langsung di WebUI, tinggal tap tombol
 - 🔒 **Password protected** — WebUI aman, password bisa diganti sendiri di `index.php`
@@ -106,8 +106,9 @@ Script `debz.sh` otomatis:
 
 ## 📱 Jalan di Termux (Android)
 
-Debz AI bisa dijalanin langsung dari **Termux** di HP Android. Script `debz.sh` otomatis
-mendeteksi Termux dan pakai nama paket yang benar (`pkg`, bukan `apt`).
+Debz AI bisa dijalanin langsung dari **Termux** di HP Android. Script `debz.sh` otomatis mendeteksi Termux dan pakai nama paket yang benar (`pkg`, bukan `apt`).
+
+**WAJIB!!!** agar computer_use berfungsi di android, replace file yang ada di ~/debz_ai dengan file fixed didalam **PATCH FOR ANDROID**, karena file bawaan tested di alpine pathnya jelas beda dengan termux, dan playwright-core ga support diandroid, maka file fixed menggunakan CDN Chrome langsung.
 
 ```bash
 pkg install git -y
