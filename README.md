@@ -112,7 +112,7 @@ mendeteksi Termux dan pakai nama paket yang benar (`pkg`, bukan `apt`).
 
 ```bash
 pkg install git -y
-git clone https://github.com/debzroot/Debz-AI---Agent.git debz_ai
+git clone https://github.com/debzroot/Debz-AI-Agent.git debz_ai
 cd debz_ai
 ./debz.sh
 ```
