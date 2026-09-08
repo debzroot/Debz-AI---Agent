@@ -1,0 +1,60 @@
+{
+    "name": "c0n73xt — Debz AI",
+    "short_name": "c0n73xt",
+    "description": "Priv8 c0n73xt WebUI — Debz AI Assistant",
+    "id": "./",
+    "start_url": "./",
+    "scope": "./",
+    "display": "standalone",
+    "display_override": ["standalone", "minimal-ui", "browser"],
+    "orientation": "any",
+    "background_color": "#0f0f14",
+    "theme_color": "#0f0f14",
+    "lang": "id",
+    "dir": "auto",
+    "categories": ["productivity", "utilities"],
+    "icons": [
+        {
+            "src": "appicons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "appicons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "appicons/icon-512-maskable.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "screenshots/narrow.png",
+            "sizes": "320x640",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Chat dengan Debz AI"
+        },
+        {
+            "src": "screenshots/wide.png",
+            "sizes": "1280x720",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "c0n73xt di layar lebar"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Chat Baru",
+            "short_name": "Chat Baru",
+            "description": "Mulai sesi chat baru",
+            "url": "./?new=1"
+        }
+    ]
+}

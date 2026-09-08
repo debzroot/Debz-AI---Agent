@@ -1,0 +1,17 @@
+<IfModule mod_env.c>
+    SetEnv no-gzip 1
+</IfModule>
+
+<Files "manifest.json">
+    ForceType application/manifest+json
+</Files>
+
+# Blokir file dokumentasi & config biar gak kebaca dari web
+# (backend.py & .ai-config.ini udah diblokir di level vhost)
+<FilesMatch "\.(md|ini|log|json)$">
+    Require all denied
+</FilesMatch>
+<Files "manifest.json">
+    Require all granted
+    ForceType application/manifest+json
+</Files>

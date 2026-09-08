@@ -1,0 +1,24 @@
+# ===== Runtime & environment =====
+venv/
+__pycache__/
+*.pyc
+.env
+
+# ===== Logs =====
+logs/
+*.log
+debug.log
+
+# ===== Config dengan secret (JANGAN commit) =====
+.ai-config.ini
+.ai-providers.json
+.ai-rr-state.json
+
+# ===== Data runtime =====
+notes.db
+screenshots/
+*.png
+last_response.txt
+export_*.md
+session_*.json
+.approval_always

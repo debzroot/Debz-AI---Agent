@@ -1,0 +1,22 @@
+#!/bin/sh
+# debz-term — launcher CLI Debz AI (interactive terminal)
+# Installed via ./debz.sh (symlink ke /usr/bin atau /usr/local/bin/debz-term)
+#
+# Resolve symlink dulu supaya bisa dipanggil dari mana pun.
+SELF="$0"
+while [ -L "$SELF" ]; do
+    TARGET=$(readlink "$SELF")
+    case "$TARGET" in
+        /*) SELF="$TARGET" ;;
+        *)  SELF="$(dirname "$SELF")/$TARGET" ;;
+    esac
+done
+SCRIPT_DIR=$(cd "$(dirname "$SELF")" && pwd)
+
+if [ -x "$SCRIPT_DIR/venv/bin/python" ]; then
+    PY="$SCRIPT_DIR/venv/bin/python"
+else
+    PY=python3
+fi
+
+exec "$PY" "$SCRIPT_DIR/debz-term.py" "$@"

@@ -1,0 +1,5 @@
+flask>=3.0
+flask-sock>=0.7
+requests>=2.31
+rich>=13.0
+prompt_toolkit>=3.0

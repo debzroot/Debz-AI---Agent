@@ -1,0 +1,16 @@
+; AI Chat Configuration — contoh (isi API key kamu sendiri)
+; c0n73xt = platform agent MANDIRI by Debz
+
+AI_API_KEY=
+AI_ENDPOINT=https://openrouter.ai/api/v1/chat/completions
+MODEL=openai/gpt-4o-mini
+
+; Token buat tool server (backend.py)
+AI_TOOLS_TOKEN=GANTI_TOKEN_ACAK_PANJANG
+AI_TOOLS_PORT=999
+
+; Batas iterasi agent loop
+AI_MAX_ITER=128
+
+; Cap max_tokens per request chat
+AI_MAX_TOKEN=128000

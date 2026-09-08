@@ -1,0 +1,14 @@
+{
+    "active": "debz",
+    "routing": "fixed",
+    "providers": {
+        "debz": {
+            "name": "Debz Combo (default)",
+            "base_url": "http://127.0.0.1:20128/v1",
+            "api_key": "",
+            "model": "debz_ai",
+            "mode": "native",
+            "enabled": true
+        }
+    }
+}
